@@ -84,27 +84,27 @@
 
 ## 安装插件
 
-把插件装进你自己的 DSH profile 即可。前置条件：Node ≥ 20、**已安装 pnpm**（`dsh plugin` 内部用 pnpm 安装）、一个可用的 `npx @deepseek-ai/dsh`。
+把插件装进你自己的 DSH profile 即可。
+
+前置条件：
+- Node ≥ 20
+- 已安装 pnpm
+- `npx @deepseek-ai/dsh`。
 
 ### 安装到 profile
 
 ```bash
-# 从 GitHub 装进 web profile（自动登记到 profile 的 dsh.profile.bundles 图层）
+# 从 GitHub 装进 web profile
 npx @deepseek-ai/dsh plugin --profile web add github:seolhw/dsh-talk
 
 # 启动 DSH Web
 npx @deepseek-ai/dsh web
 ```
 
-`dsh plugin` 只是在 profile 目录里转发 pnpm 安装（等价于 `pnpm add github:seolhw/dsh-talk`），装完会**自动把声明了 `dsh.bundle` 的依赖加进 profile 的 `dsh.profile.bundles`**，插件随之生效 —— 不需要手工改配置文件。
-
-想锁定版本，在末尾加 ref 即可：`github:seolhw/dsh-talk#<分支 | tag | commit>`；如果你的 pnpm 版本不接受 `github:` 简写，等价写法是 `git+https://github.com/seolhw/dsh-talk.git#main`。
-
 ### 首次使用
 
-1. 启动后侧栏底部出现 **DSH-Talk（社区）** 入口，即安装成功（没有入口说明插件没被当作图层加载，检查 profile 的 `dsh.profile.bundles` 里是否已包含 `dsh-talk`）；
-2. 打开面板，在 **DSH 设置页的插件设置**里填 `serverUrl` —— 连官方公共 Server 填它给的地址，自托管填你自己的域名（本地开发默认 `http://127.0.0.1:8787`）；
-3. 在面板内用邮箱注册账号，查收 6 位验证码完成验证，然后创建或加入社区。
+1. 启动后侧栏底部出现 **DSH-Talk（社区）** 入口，即安装成功。
+2. 在面板内用邮箱注册账号，查收 6 位验证码完成验证，然后创建或加入社区。
 
 ### 升级与卸载
 
@@ -112,8 +112,6 @@ npx @deepseek-ai/dsh web
 npx @deepseek-ai/dsh plugin --profile web update dsh-talk    # 拉到仓库最新提交
 npx @deepseek-ai/dsh plugin --profile web remove dsh-talk    # 卸载（同时从 dsh.profile.bundles 移除）
 ```
-
-profile 的实际位置是 `$DSH_HOME/profiles/<name>`（Windows 默认 `%USERPROFILE%\.dsh\profiles\web`），插件会被装进该目录的 `node_modules`；`--profile <name>` 换成你实际使用的 profile，默认 `web`。
 
 > 想在本仓库里边改边跑（热重载、watch 打包），或者想自己托管 Server，见下面的「更多文档」。
 
