@@ -82,130 +82,42 @@
 
 ---
 
-## 使用它需要什么
+## 安装插件
 
-- **DSH 本体**：`npx @deepseek-ai/dsh`
-- **一个 DSH-Talk Server**：官方会提供一个公共地址；也可以参考下面的「部署到 Cloudflare（生产）」自己托管一个。
-- 首次使用在插件设置里填好 `serverUrl` 后，面板内用邮箱注册账号即可。
+把插件装进你自己的 DSH profile 即可。前置条件：Node ≥ 20、**已安装 pnpm**（`dsh plugin` 内部用 pnpm 安装）、一个可用的 `npx @deepseek-ai/dsh`。
 
-> 发信依赖 Resend 等事务邮件（验证码 / 重置密码 / 邀请邮件）。若 Server 未配置发信，请改看服务端日志里打印的验证码。
+还需要一个 **DSH-Talk Server** 地址 —— 账号、社区、消息都存在它上面：用官方提供的公共地址，或按 [自部署 Server](docs/deploy.md) 自己托管一个。首次使用在插件设置里填好 `serverUrl`，即可在面板内用邮箱注册账号。
 
----
-
-## 快速开始（本地跑通全栈）
-
-### 0. 环境
-
-- Node.js ≥ 20、pnpm ≥ 9、[Wrangler](https://developers.cloudflare.com/workers/wrangler/)
-- DSH：`npx @deepseek-ai/dsh`
-
-### 1. 启动 Server
+### 安装到 profile
 
 ```bash
-# 仓库根目录
-pnpm install
-pnpm dev:server      # Hono Worker，默认 http://127.0.0.1:8787
+# 从 GitHub 装进 web profile（自动登记到 profile 的 dsh.profile.bundles 图层）
+npx @deepseek-ai/dsh plugin --profile web add github:seolhw/dsh-talk
+
+# 启动 DSH Web
+npx @deepseek-ai/dsh web
 ```
 
-认证密钥写入仓库根 `.env`（predev 自动同步到 `packages/server/.dev.vars`，**不要提交**）：
+`dsh plugin` 只是在 profile 目录里转发 pnpm 安装（等价于 `pnpm add github:seolhw/dsh-talk`），装完会**自动把声明了 `dsh.bundle` 的依赖加进 profile 的 `dsh.profile.bundles`**，插件随之生效 —— 不需要手工改配置文件。
+
+想锁定版本，在末尾加 ref 即可：`github:seolhw/dsh-talk#<分支 | tag | commit>`；如果你的 pnpm 版本不接受 `github:` 简写，等价写法是 `git+https://github.com/seolhw/dsh-talk.git#main`。
+
+### 首次使用
+
+1. 启动后侧栏底部出现 **DSH-Talk（社区）** 入口，即安装成功（没有入口说明插件没被当作图层加载，检查 profile 的 `dsh.profile.bundles` 里是否已包含 `dsh-talk`）；
+2. 打开面板，在 **DSH 设置页的插件设置**里填 `serverUrl` —— 连官方公共 Server 填它给的地址，自托管填你自己的域名（本地开发默认 `http://127.0.0.1:8787`）；
+3. 在面板内用邮箱注册账号，查收 6 位验证码完成验证，然后创建或加入社区。
+
+### 升级与卸载
 
 ```bash
-BETTER_AUTH_SECRET=一个不少于32字符的随机串   # 必填
-RESEND_API_KEY=re_xxx                        # 可选：配了才真正发邮件
-# BETTER_AUTH_URL=http://127.0.0.1:8787      # 可选：对外地址
+npx @deepseek-ai/dsh plugin --profile web update dsh-talk    # 拉到仓库最新提交
+npx @deepseek-ai/dsh plugin --profile web remove dsh-talk    # 卸载（同时从 dsh.profile.bundles 移除）
 ```
 
-首次启动前生成并应用数据库迁移：
+profile 的实际位置是 `$DSH_HOME/profiles/<name>`（Windows 默认 `%USERPROFILE%\.dsh\profiles\web`），插件会被装进该目录的 `node_modules`；`--profile <name>` 换成你实际使用的 profile，默认 `web`。
 
-```bash
-cd packages/server
-pnpm db:generate     # 由 schema 生成迁移 SQL
-pnpm db:apply-local  # 写入本地 D1
-```
-
-### 2. 构建并载入插件
-
-```bash
-pnpm build    # host/client 产物写入 lib/
-pnpm dev      # overlay 模式：自动打包并启动 DSH Web（默认 http://127.0.0.1:3080）
-```
-
-侧栏底部出现 **DSH-Talk（社区）** 入口即加载成功；改源码后 `pnpm dev` 会自动重打包，刷新页面即可。
-
-### 3. 开始使用
-
-1. 打开 DSH-Talk 面板 → **注册**一个邮箱账号，查收 6 位验证码完成邮箱验证；
-2. **创建**第一个社区（公开），或在 **「＋ 加入」** 里输入别人的邀请码加入私有社区；
-3. 在社区里 **新建频道**（文字 / 公告 / 话题），进入频道聊天、传图、`@` 人；
-4. 拉上第二个用户连同一个 Server 验证实时互通；忘记密码可以随时用「忘记密码？」通过验证码找回。
-
-> 单机联调两台「用户」时，请使用两个独立的 DSH profile（不同端口、不同配置目录），连接同一个 Server。
-
----
-
-## 部署到 Cloudflare（生产）
-
-Server 完全自包含，按下面步骤可以部署到自己的 Cloudflare 账号。
-
-### 1. 准备资源
-
-```bash
-# 登录 Cloudflare
-npx wrangler login
-
-# D1 元数据库（记下输出的 database_id）
-npx wrangler d1 create dsh-talk
-
-# R2 桶（附件与分享包）
-npx wrangler r2 bucket create dsh-talk-assets
-```
-
-把 `npx wrangler d1 create` 返回的 `database_id` 填回 [wrangler.jsonc](file:///e:/dsh-talk/packages/server/wrangler.jsonc) 的 `d1_databases[0].database_id`，并按需修改 `name`、`routes`（自定义域）与 `r2_buckets.bucket_name`。
-
-### 2. 配置认证变量
-
-`BETTER_AUTH_URL` 是非敏感值，直接写在 `wrangler.jsonc` 的 `vars` 里（改成你的线上地址，**必须与自定义域一致**，否则请求会因 Host 不在允许名单而被拒）。密钥用 secret 注入：
-
-```bash
-cd packages/server
-npx wrangler secret put BETTER_AUTH_SECRET   # ≥ 32 字符随机串
-npx wrangler secret put RESEND_API_KEY       # 可选；不配则验证码只打印到服务端日志
-```
-
-### 3. 应用数据库迁移
-
-```bash
-# 仓库根目录；等价于 wrangler d1 migrations apply dsh-talk --remote
-pnpm --filter @dsh-talk/server db:apply-remote
-```
-
-认证相关表（user / session / account / verification）无需迁移：首次访问 `/api/auth/*` 时由 Better Auth 自举创建（幂等）。
-
-### 4. 部署
-
-```bash
-pnpm deploy:server   # 等价于 packages/server 下的 wrangler deploy
-```
-
-### 5. 客户端接入
-
-在 DSH 插件设置里把 `serverUrl` 改成你的线上地址（`https://<你的自定义域>`），即可注册 / 登录使用。自定义域有变动时，记得同步更新 `wrangler.jsonc` 的 `vars.BETTER_AUTH_URL` 与插件设置里的 `serverUrl`。
-
-### 6.（可选）写入官方社区与种子内容
-
-公共 Server 上「新用户注册进来看到空场」是最大的流失点。配好 `ADMIN_TOKEN` 并部署后，用**你自己的账号**先注册登录，然后执行一次（可重复执行，已存在的官方社区会跳过）：
-
-```bash
-cd packages/server
-npx wrangler secret put ADMIN_TOKEN          # 自定义一串随机口令
-
-# serverUrl 换成你的线上地址；TOKEN 用插件设置里的 token（登录后自动写入）
-curl -X POST https://<你的自定义域>/api/admin/seed-official \
-  -H "Authorization: Bearer <TOKEN>" \
-  -H "X-Admin-Token: <ADMIN_TOKEN>"
-```
-
-会创建 3 个公开社区（DSH 官方 / 会话分享广场 / 插件与技能开发），每个社区自带公告、文字频道与**各频道置顶说明帖**，owner 是你自己（之后可在成员面板转让所有权）。这 3 个社区恒排在发现页顶部并带「官方」标记；想调整内容就改 `packages/server/src/lib/official.ts` 后重新执行。
+> 想在本仓库里边改边跑（热重载、watch 打包），或者想自己托管 Server，见下面的「更多文档」。
 
 ---
 
@@ -232,13 +144,11 @@ flowchart LR
 
 - **client（浏览器）**：聊天界面、WebSocket 实时连接、附件直传、站内信。
 - **host（Node.js）**：保存 serverUrl / token 等本地设置；读本机 DSH 会话并打包成分享包，也能把分享包还原成本地会话。
-- **server（Cloudflare）**：唯一的数据中心——REST + WebSocket API、每频道一个 Durable Object 做实时扇出、D1 存业务数据、R2 存附件与分享包；完全自包含，可自托管。
+- **server（Cloudflare）**：唯一的数据中心——REST + WebSocket API、每频道一个 Durable Object 做实时扇出、D1 存业务数据、R2 存附件与分享包；完全自包含，可按 [自部署 Server](docs/deploy.md) 自己托管一个。
 
 ---
 
-## 常见配置
-
-### 插件设置（DSH 设置页）
+## 插件设置（DSH 设置页）
 
 | 键 | 默认 | 说明 |
 | --- | --- | --- |
@@ -250,46 +160,16 @@ flowchart LR
 
 ### Server 环境变量
 
-| 变量 | 必填 | 说明 |
-| --- | --- | --- |
-| `BETTER_AUTH_SECRET` | 是 | 会话签名密钥，≥ 32 字符 |
-| `BETTER_AUTH_URL` | 否 | 认证对外地址（邮箱链接基于它）；缺省按请求 Host 推导 |
-| `RESEND_API_KEY` | 否 | 事务邮件发送密钥；未配置时验证码只打印到服务端日志 |
-| `ADMIN_TOKEN` | 否 | 运营口令；配置后才可用 `/api/admin/*`（写入官方社区种子），未配置则该分组直接禁用 |
-
-其余业务限额（单条消息 4000 字、上传 R2 的单个对象 50 MiB（附件与分享包统一）、每条 4 个附件、讨论组 24h 自动归档等）在 `packages/server/src/constants.ts` 中集中维护；每人加入 / 自建社区各 20 个、自建每 24 小时最多 5 个的限额在社区路由内校验。
+Server 端的 `BETTER_AUTH_SECRET` / `BETTER_AUTH_URL` / `RESEND_API_KEY` / `ADMIN_TOKEN` 与业务限额，见 [自部署 Server](docs/deploy.md#环境变量)。
 
 ---
 
-## 仓库结构（给开发者）
+## 更多文档
 
-```
-dsh-talk/
-├── packages/
-│   ├── host/      # DSH 插件 host：注册 talk 设置 + 本地接口
-│   ├── client/    # DSH 插件 client：React 聊天界面 + 连接层
-│   ├── types/     # ⭐ 全栈共享类型：实体 / REST / WebSocket / RPC 契约
-│   └── server/    # ⭐ Cloudflare Server：Hono Worker + D1 + R2 + Durable Object
-├── lib/           # 打包产物（host + client）
-├── tsdown.config.ts / cordis.yml / cordis.patch.yml
-├── biome.json     # 格式 / lint / import 排序
-└── package.json
-```
-
-常用命令（在仓库根目录执行）：
-
-```bash
-pnpm build                # host/client 打包到 lib/
-pnpm dev                  # watch + overlay 启动 DSH Web
-pnpm dev:server           # 本地启动 Server
-pnpm typecheck            # 全 workspace 类型检查
-pnpm lint / pnpm check    # Biome 质量检查
-pnpm --filter @dsh-talk/server db:generate   # 改 schema 后生成迁移
-pnpm --filter @dsh-talk/server db:apply-local
-pnpm --filter @dsh-talk/server test:smoke    # WebSocket 冒烟测试（需本地 Server 已启动）
-```
-
-约定：改共享接口先改 `packages/types`；变更数据库先 `db:generate` 并审查 SQL；提交信息用 `feat(server): …` / `fix(client): …` 风格。
+| 文档 | 内容 |
+| --- | --- |
+| [参与开发](docs/development.md) | 仓库结构、本地跑通全栈（`pnpm build` / `pnpm dev` / `pnpm dev:server`）、overlay 加载机制、常用命令与提交约定 |
+| [自部署 Server](docs/deploy.md) | 把 Server（Hono Worker + D1 + R2 + Durable Object）部署到自己的 Cloudflare 账号；环境变量、发信配置与官方社区种子 |
 
 ---
 
