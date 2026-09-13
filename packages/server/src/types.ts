@@ -23,6 +23,10 @@ export interface Env {
 
   // ---------- Resend 事务邮件 ----------
   RESEND_API_KEY?: string;
+
+  // ---------- 运营（自托管可不配；不配则 /api/admin/* 不可用） ----------
+  /** 管理接口口令：调用 /api/admin/* 时需带 X-Admin-Token 头与之一致 */
+  ADMIN_TOKEN?: string;
 }
 
 // Hono ctx.set(...) 注入的变量

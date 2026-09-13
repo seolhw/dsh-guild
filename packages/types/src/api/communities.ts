@@ -29,11 +29,24 @@ export type ChannelAccess = Channel & { permissions: PermissionFlags };
 export interface DiscoverCommunitiesQuery extends OffsetPaginationQuery {
   /** 模糊搜索 name / description */
   q?: string;
-  /** 排序：默认热门（memberCount desc, createdAt desc） */
-  sort?: "hot" | "newest";
+  /** 排序：默认热门（memberCount desc）；active = 最近有消息优先；newest = 最新创建 */
+  sort?: "hot" | "newest" | "active";
 }
 
-export type DiscoverCommunitiesResponse = OffsetPaginated<Community>;
+/**
+ * 发现页条目：社区 + 活跃度概览。
+ * 带上活跃度是为了让用户一眼看出「点进去有没有人说话」，避免进到空社区。
+ */
+export interface DiscoverCommunityItem extends Community {
+  /** 官方预置社区（服务端按固定 id 判定；发现页置顶展示） */
+  isOfficial: boolean;
+  /** 该社区最后一条消息时间（null = 从未有消息；含讨论组消息） */
+  lastMessageAt: TimestampMs | null;
+  /** 近 7 天消息数 */
+  recentMessages: number;
+}
+
+export type DiscoverCommunitiesResponse = OffsetPaginated<DiscoverCommunityItem>;
 
 /** GET /api/communities/mine —— 我加入的社区列表（含 owner 的） */
 export type GetMyCommunitiesResponse = (Community & {

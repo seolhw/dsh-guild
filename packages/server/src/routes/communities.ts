@@ -21,6 +21,7 @@ import type {
   CreateInviteRequest,
   CreateRoleRequest,
   DiscoverCommunitiesQuery,
+  DiscoverCommunityItem,
   GetCommunityOnlineResponse,
   GetMyCommunitiesResponse,
   ListMembersQuery,
@@ -44,7 +45,11 @@ import {
 } from "@dsh-talk/types/entities";
 import { and, count, desc, eq, gt, gte, inArray, isNull, like, ne, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import { COMMUNITY_CREATE_DAILY_LIMIT, MAX_COMMUNITIES_PER_USER } from "../constants";
+import {
+  COMMUNITY_CREATE_DAILY_LIMIT,
+  MAX_COMMUNITIES_PER_USER,
+  NEW_COMMUNITY_GUIDE,
+} from "../constants";
 import {
   type ChannelOverwriteRow,
   type ChannelRow,
@@ -64,12 +69,18 @@ import {
 } from "../db/schema";
 import { getMembership, isCommunityBanned, requireMember, requireNotBanned } from "../lib/access";
 import { createBearerAuth, requireCurrentUser, requireUserId } from "../lib/auth";
-import { loadChannelRow } from "../lib/channels";
+import {
+  ANNOUNCEMENT_READONLY_DENY,
+  grantAnnouncementReadOnly,
+  loadChannelRow,
+} from "../lib/channels";
 import { mapCommunity } from "../lib/communities";
 import { db as dbOf } from "../lib/db";
 import { HttpApiError } from "../lib/errors";
 import { newId, newInviteCode, newSlug } from "../lib/ids";
 import { createCommunityInvite, finalizePendingInvites } from "../lib/invites";
+import { insertPinnedGuide } from "../lib/messages";
+import { isOfficialCommunity, officialFirstOrder } from "../lib/official";
 import {
   assertCanManageMember,
   assertCanManageRole,
@@ -175,7 +186,7 @@ export const communitiesRoutes = communitiesApi;
 // 身份由 Better Auth 会话（Bearer）解析并注入 userId；入口再判断成员/权限位
 communitiesApi.use("*", createBearerAuth("required"));
 
-// --- GET /discover —— 公开社区目录 ---
+// --- GET /discover —— 公开社区目录（带活跃度概览；官方社区置顶） ---
 communitiesApi.get("/discover", async (c) => {
   const db = dbOf(c);
   const q = c.req.query() as DiscoverCommunitiesQuery;
@@ -195,16 +206,71 @@ communitiesApi.get("/discover", async (c) => {
     .from(communities)
     .where(and(...conds));
   const total = totalRows[0]?.value ?? 0;
-  const order = q.sort === "newest" ? desc(communities.createdAt) : desc(communities.memberCount);
+  // active 排序要按「该社区最后一条消息时间」，必须由 SQL 排序（先分页再排会错）。
+  // 只在真的选 active 时才会执行这个关联子查询。
+  const lastMessageAtSql = sql<number | null>`(
+    SELECT MAX(${messages.createdAt}) FROM ${messages} WHERE ${messages.communityId} = ${communities.id}
+  )`;
+  const order =
+    q.sort === "newest"
+      ? desc(communities.createdAt)
+      : q.sort === "active"
+        ? desc(sql`COALESCE(${lastMessageAtSql}, 0)`)
+        : desc(communities.memberCount);
+  // 官方社区置顶；带搜索词时保持原顺序，避免干扰搜索结果
+  const officialFirst = keyword ? [] : officialFirstOrder();
   const rows = await db
     .select()
     .from(communities)
     .where(and(...conds))
-    .orderBy(order, desc(communities.createdAt))
+    .orderBy(...officialFirst, order, desc(communities.createdAt))
     .limit(limit)
     .offset(offset);
-  return c.json({ items: rows.map(mapCommunity), total, offset, limit });
+  const activity = await communityActivity(
+    db,
+    rows.map((r) => r.id),
+  );
+  const items: DiscoverCommunityItem[] = rows.map((row) => {
+    const stat = activity.get(row.id);
+    return {
+      ...mapCommunity(row),
+      isOfficial: isOfficialCommunity(row.id),
+      lastMessageAt: stat?.lastMessageAt ?? null,
+      recentMessages: stat?.recentMessages ?? 0,
+    };
+  });
+  return c.json({ items, total, offset, limit });
 });
+
+const ACTIVITY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** 本页社区的活跃度概览：最后一条消息时间 + 近 7 天消息数（含讨论组消息） */
+async function communityActivity(
+  db: ReturnType<typeof dbOf>,
+  communityIds: string[],
+): Promise<Map<string, { lastMessageAt: number | null; recentMessages: number }>> {
+  const result = new Map<string, { lastMessageAt: number | null; recentMessages: number }>();
+  if (communityIds.length === 0) return result;
+  const since = Date.now() - ACTIVITY_WINDOW_MS;
+  const rows = await db
+    .select({
+      communityId: messages.communityId,
+      lastMessageAt: sql<number | null>`MAX(${messages.createdAt})`,
+      recentMessages: sql<
+        number | null
+      >`SUM(CASE WHEN ${messages.createdAt} >= ${since} THEN 1 ELSE 0 END)`,
+    })
+    .from(messages)
+    .where(inArray(messages.communityId, communityIds))
+    .groupBy(messages.communityId);
+  for (const row of rows) {
+    result.set(row.communityId, {
+      lastMessageAt: row.lastMessageAt ?? null,
+      recentMessages: Number(row.recentMessages ?? 0),
+    });
+  }
+  return result;
+}
 
 // --- GET /mine —— 我加入的社区 ---
 communitiesApi.get("/mine", async (c) => {
@@ -343,6 +409,7 @@ communitiesApi.post("/", async (c) => {
     { name: "公告", kind: "announcement" as const, position: 1 },
   ];
   const createdChannels: ChannelAccess[] = [];
+  let announcementChannelId: string | null = null;
   for (const d of defaults) {
     const channelId = newId();
     const row: ChannelRow = {
@@ -358,8 +425,19 @@ communitiesApi.post("/", async (c) => {
     await db.insert(channels).values(row);
     if (d.kind === "announcement") {
       await grantAnnouncementReadOnly(db, channelId, now);
+      announcementChannelId = channelId;
     }
     createdChannels.push(channelAccess(row, ALL_PERMISSIONS));
+  }
+  // 开箱指南：往公告频道发一条置顶说明，避免新人进来看到一片空白
+  if (announcementChannelId) {
+    await insertPinnedGuide(db, {
+      channelId: announcementChannelId,
+      communityId,
+      authorId: userId,
+      content: NEW_COMMUNITY_GUIDE,
+      at: now,
+    });
   }
   void everyone;
   const created = await mustRow(
@@ -629,36 +707,6 @@ communitiesApi.delete("/:id", async (c) => {
   ]);
   return emptyOk(c);
 });
-
-// 公告频道默认只读：给 @everyone 叠加 SEND_MESSAGES | CREATE_THREAD 的 deny
-// （owner 与 ADMINISTRATOR 绕过频道覆盖，因此仍可发布；被授权 SEND_MESSAGES 的角色也可发）
-const ANNOUNCEMENT_READONLY_DENY = Permission.SEND_MESSAGES | Permission.CREATE_THREAD;
-
-/** 让公告频道对 @everyone 只读（保留既有 allow 与其它 deny 位） */
-async function grantAnnouncementReadOnly(
-  db: ReturnType<typeof dbOf>,
-  channelId: string,
-  now: number,
-): Promise<void> {
-  await db
-    .insert(channelOverwrites)
-    .values({
-      channelId,
-      targetType: "everyone",
-      targetId: EVERYONE_TARGET_ID,
-      allow: 0,
-      deny: ANNOUNCEMENT_READONLY_DENY,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: [
-        channelOverwrites.channelId,
-        channelOverwrites.targetType,
-        channelOverwrites.targetId,
-      ],
-      set: { deny: sql`${channelOverwrites.deny} | ${ANNOUNCEMENT_READONLY_DENY}`, updatedAt: now },
-    });
-}
 
 /** 取消公告频道的 @everyone 只读（只摘掉自动叠加的 deny 位；空覆盖则删行） */
 async function revokeAnnouncementReadOnly(

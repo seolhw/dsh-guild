@@ -12,11 +12,12 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** 只把认证相关变量从 .env 同步到 .dev.vars（密钥 + 认证 URL） */
+/** 只把认证 / 运营相关变量从 .env 同步到 .dev.vars（密钥 + 认证 URL） */
 const KEY_ALLOWLIST = new Set([
   "BETTER_AUTH_URL",
   "BETTER_AUTH_SECRET",
   "RESEND_API_KEY",
+  "ADMIN_TOKEN",
 ]);
 
 const here = dirname(fileURLToPath(import.meta.url));

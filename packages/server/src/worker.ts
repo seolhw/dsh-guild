@@ -22,6 +22,7 @@ import { bindExecutionCtx, unbindExecutionCtx } from "./lib/email";
 import { HttpApiError } from "./lib/errors";
 import { applyGlobalMiddleware } from "./lib/middleware";
 import { assertUsernameChangeAllowed } from "./lib/users";
+import { adminRoutes } from "./routes/admin";
 import { channelsRoutes, communitiesRoutes } from "./routes/communities";
 import { invitesRoutes } from "./routes/invites";
 import { channelMessagesRoutes, messagesRoutes } from "./routes/messages";
@@ -95,6 +96,7 @@ app.route("/api/invites", invitesRoutes); // /api/invites/:id/accept|decline
 app.route("/api/notifications", notificationsRoutes); // /api/notifications（站内信）
 app.route("/api/r2", r2ObjectReadRoutes); // GET /api/r2/objects/:key（公开读取）
 app.route("/api/r2", r2UploadRoutes); // PUT /api/r2/objects（Bearer 鉴权）
+app.route("/api/admin", adminRoutes); // POST /api/admin/seed-official（Bearer + X-Admin-Token）
 
 // ----------------- WebSocket Upgrade (/ws) -----------------
 // 浏览器 WS 无法自定义 Header，用 ?token=<session token>&channelId=<id>：

@@ -3,7 +3,7 @@
 // ================================================================
 
 import { Button, Input } from "@deepseek-ai/dsh-client-ui-primitives";
-import type { Community } from "@dsh-talk/types/entities";
+import type { DiscoverCommunityItem } from "@dsh-talk/types/api";
 import { type CSSProperties, type ReactElement, useEffect, useState } from "react";
 import {
   createCommunity,
@@ -23,8 +23,8 @@ import {
   palette,
   pillGroup,
   pillStyle,
-  smallText,
   Spinner,
+  smallText,
 } from "./styles";
 import { TalkModal as Modal } from "./TalkModal";
 
@@ -55,6 +55,43 @@ const discoverDesc: CSSProperties = {
   whiteSpace: "nowrap",
 };
 
+/** 活跃度一行：比「成员数」更能说明点进去有没有人说话 */
+const discoverActivity: CSSProperties = {
+  fontSize: 12,
+  color: palette.muted,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
+/** 官方社区标记 */
+const officialBadge: CSSProperties = {
+  marginLeft: 6,
+  padding: "0 5px",
+  borderRadius: 4,
+  border: `1px solid ${palette.accent}`,
+  color: palette.accent,
+  fontSize: 11,
+  fontWeight: 600,
+};
+
+const DISCOVER_SORTS = [
+  { value: "hot", label: "热门" },
+  { value: "active", label: "活跃" },
+  { value: "newest", label: "最新" },
+] as const;
+
+/** 活跃度摘要：最后一条消息距今多久 */
+function activityLabel(item: DiscoverCommunityItem): string {
+  if (!item.lastMessageAt) return "还没有人发言";
+  const diff = Date.now() - item.lastMessageAt;
+  if (diff < 60 * 1000) return "刚刚有消息";
+  if (diff < 60 * 60 * 1000) return `${Math.floor(diff / 60_000)} 分钟前有消息`;
+  if (diff < 24 * 60 * 60 * 1000) return `${Math.floor(diff / 3_600_000)} 小时前有消息`;
+  if (diff < 7 * 24 * 60 * 60 * 1000) return `${Math.floor(diff / 86_400_000)} 天前有消息`;
+  return "近一周无消息";
+}
+
 /** 「发现 / 加入 / 创建」合并为一个弹窗：顶部 tab 切换，默认「发现」 */
 export function CommunityAddModal({
   open,
@@ -68,9 +105,10 @@ export function CommunityAddModal({
   // 加入：邀请码
   const [code, setCode] = useState("");
   // 发现：公开社区目录
-  const [discoverItems, setDiscoverItems] = useState<Community[]>([]);
+  const [discoverItems, setDiscoverItems] = useState<DiscoverCommunityItem[]>([]);
   const [discoverLoading, setDiscoverLoading] = useState(false);
   const [keyword, setKeyword] = useState("");
+  const [sort, setSort] = useState<"hot" | "active" | "newest">("hot");
   const [joiningId, setJoiningId] = useState<string | null>(null);
   // 创建：名称 / 简介 / 可见性 / 头像
   const [name, setName] = useState("");
@@ -91,13 +129,14 @@ export function CommunityAddModal({
       setTab("discover");
       setCode("");
       setKeyword("");
+      setSort("hot");
       setDiscoverItems([]);
       setJoiningId(null);
       setName("");
       setDescription("");
       setPrivacy("public");
       setIconUrl(null);
-      void loadDiscover("");
+      void loadDiscover("", "hot");
     }
   }, [open]);
 
@@ -108,10 +147,13 @@ export function CommunityAddModal({
     if (url) setIconUrl(url);
   }
 
-  /** 拉公开社区目录（关键词为空 = 热门） */
-  async function loadDiscover(q: string): Promise<void> {
+  /** 拉公开社区目录（关键词为空 = 全部；sort 决定排序：热门 / 活跃 / 最新） */
+  async function loadDiscover(
+    q: string,
+    nextSort: "hot" | "active" | "newest" = sort,
+  ): Promise<void> {
     setDiscoverLoading(true);
-    const items = await discoverCommunities({ q });
+    const items = await discoverCommunities({ q, sort: nextSort });
     setDiscoverItems(items);
     setDiscoverLoading(false);
   }
@@ -291,6 +333,22 @@ export function CommunityAddModal({
                 {discoverLoading ? "搜索中…" : "搜索"}
               </Button>
             </div>
+            {/* 排序：官方社区恒置顶，其余按所选维度排 */}
+            <div style={pillGroup}>
+              {DISCOVER_SORTS.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  style={pillStyle(sort === item.value)}
+                  onClick={() => {
+                    setSort(item.value);
+                    void loadDiscover(keyword, item.value);
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
             {discoverLoading ? (
               <LoadingHint text="加载社区…" padding="8px 2px" />
             ) : discoverItems.length === 0 ? (
@@ -307,12 +365,17 @@ export function CommunityAddModal({
               >
                 {discoverItems.map((item) => {
                   const joined = joinedIds.has(item.id);
+                  const activity =
+                    item.recentMessages > 0
+                      ? `${activityLabel(item)} · 近 7 天 ${item.recentMessages} 条`
+                      : activityLabel(item);
                   return (
                     <div key={item.id} style={discoverRow}>
                       <Avatar label={item.name} src={item.iconUrl} kind="community" />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={discoverName}>
                           {item.name}
+                          {item.isOfficial ? <span style={officialBadge}>官方</span> : null}
                           <span style={{ color: palette.muted, fontSize: 14 }}>
                             {" "}
                             · {item.memberCount} 成员
@@ -321,6 +384,7 @@ export function CommunityAddModal({
                         {item.description ? (
                           <div style={discoverDesc}>{item.description}</div>
                         ) : null}
+                        <div style={discoverActivity}>{activity}</div>
                       </div>
                       <Button
                         size="sm"

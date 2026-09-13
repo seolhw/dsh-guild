@@ -14,7 +14,8 @@ import type {
   CreateMessageRequest,
   CreateRoleRequest,
   CreateThreadRequest,
-  DiscoverCommunitiesResponse,
+  DiscoverCommunitiesQuery,
+  DiscoverCommunityItem,
   GetCommunityResponse,
   GetMyCommunitiesResponse,
   GetShareResponse,
@@ -999,10 +1000,10 @@ export async function joinCommunityByCode(inviteCode: string): Promise<boolean> 
   }
 }
 
-/** 发现公开社区（社区目录；支持关键词搜索与排序） */
+/** 发现公开社区（社区目录；支持关键词搜索与排序：热门 / 活跃 / 最新） */
 export async function discoverCommunities(
-  opts: { q?: string; sort?: "hot" | "newest"; offset?: number } = {},
-): Promise<DiscoverCommunitiesResponse["items"]> {
+  opts: { q?: string; sort?: DiscoverCommunitiesQuery["sort"]; offset?: number } = {},
+): Promise<DiscoverCommunityItem[]> {
   const server = serverOf();
   if (!server) return [];
   try {
