@@ -86,8 +86,6 @@
 
 把插件装进你自己的 DSH profile 即可。前置条件：Node ≥ 20、**已安装 pnpm**（`dsh plugin` 内部用 pnpm 安装）、一个可用的 `npx @deepseek-ai/dsh`。
 
-还需要一个 **DSH-Talk Server** 地址 —— 账号、社区、消息都存在它上面：用官方提供的公共地址，或按 [自部署 Server](docs/deploy.md) 自己托管一个。首次使用在插件设置里填好 `serverUrl`，即可在面板内用邮箱注册账号。
-
 ### 安装到 profile
 
 ```bash

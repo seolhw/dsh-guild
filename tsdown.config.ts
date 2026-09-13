@@ -21,17 +21,6 @@ const PLATFORM_MODULES = [
   "@deepseek-ai/dsh-client-ui-primitives",
 ] as const;
 
-/**
- * Node（host）侧平台模块：运行期由 DSH 的模块图提供，**必须与宿主共用同一实例**，
- * 因此永不内联 —— 内联会出现两份 settings 命名空间 / schema 实例，插件直接失效。
- */
-const HOST_PLATFORM_MODULES = [
-  "@deepseek-ai/cordis",
-  "@deepseek-ai/dsh-settings",
-  "@deepseek-ai/dsh-host-webserver",
-  "@deepseek-ai/schemastery",
-] as const;
-
 export default (): UserConfig[] => {
   // watch（pnpm dev 看门狗）时不能 clean 整个 outDir：host 单独重建会把
   // 未变动的 client.js 一并删掉，导致 web shell 找不到浏览器半边。
@@ -45,13 +34,14 @@ export default (): UserConfig[] => {
       target: "es2022",
       dts: true,
       clean: !watch,
-      // cordis / dsh 系 / schemastery 在运行期由 DSH 模块图提供（dev 走 repo node_modules），
-      // 必须与宿主共用同一实例，故 neverBundle；其余依赖（es-toolkit 等）一律内联，
-      // 让 host 产物尽量自包含，少一个「用户环境还得解析到它」的外部依赖。
+      // cordis / dsh 系 / schemastery 在运行期由 DSH 模块图提供（dev 走 repo node_modules）
       deps: {
-        neverBundle: [...HOST_PLATFORM_MODULES],
-        alwaysBundle: (id: string) =>
-          HOST_PLATFORM_MODULES.includes(id as never) ? undefined : true,
+        neverBundle: [
+          "@deepseek-ai/cordis",
+          "@deepseek-ai/dsh-settings",
+          "@deepseek-ai/dsh-host-webserver",
+          "@deepseek-ai/schemastery",
+        ],
       },
     },
   ];
