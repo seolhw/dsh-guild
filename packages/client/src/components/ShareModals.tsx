@@ -32,6 +32,14 @@ function sessionHint(row: ShareSessionNode): string {
   return row.completed ? "已完成" : "";
 }
 
+/** 会话树里按 id 取展示名：选中会话时用它默认填充分享标题 */
+function sessionTitleOf(tree: ShareSessionTree, sessionId: string): string {
+  for (const group of tree.groups) {
+    for (const row of group.sessions) if (row.id === sessionId) return row.title;
+  }
+  return "";
+}
+
 /** 分享 DSH 会话弹窗：选一个本机会话，打包上传并发送卡片到当前频道 */
 export function ShareSnapshotModal({
   open,
@@ -56,9 +64,19 @@ export function ShareSnapshotModal({
     if (!open) return;
     void listShareableSessions().then((res) => {
       setTree(res);
-      setSessionId(getCurrentDshSession() ?? res.current ?? res.groups[0]?.sessions[0]?.id ?? "");
+      const initial =
+        getCurrentDshSession() ?? res.current ?? res.groups[0]?.sessions[0]?.id ?? "";
+      setSessionId(initial);
+      // 分享标题默认取所选会话的展示名，用户仍可改写
+      setTitle(sessionTitleOf(res, initial));
     });
   }, [open]);
+
+  /** 选会话：标题同步换成该会话的名字（之后用户自己写的以用户为准） */
+  function selectSession(row: ShareSessionNode): void {
+    setSessionId(row.id);
+    setTitle(row.title);
+  }
 
   /** DSH 会话：host 打包上传后登记分享，并把卡片发到当前频道 */
   async function submitSession(): Promise<void> {
@@ -131,7 +149,7 @@ export function ShareSnapshotModal({
                     <button
                       key={row.id}
                       type="button"
-                      onClick={() => setSessionId(row.id)}
+                      onClick={() => selectSession(row)}
                       title={row.id}
                       style={{
                         ...pillStyle(row.id === sessionId),
@@ -169,7 +187,7 @@ export function ShareSnapshotModal({
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="会话分享标题（可选）"
+          placeholder="分享标题（默认用会话名，可修改）"
         />
         <Input
           value={summary}

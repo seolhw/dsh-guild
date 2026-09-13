@@ -5,9 +5,10 @@
 //     语义与 @dsh-talk/types/rpc 的 TalkSettings 一致（GET 读 / POST patch）
 // ================================================================
 
-import { existsSync, statSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { isAbsolute } from "node:path";
+import { homedir } from "node:os";
+import { isAbsolute, join } from "node:path";
 import type { Context } from "@deepseek-ai/cordis";
 import type { WebRoute } from "@deepseek-ai/dsh-host-webserver";
 import type { SettingsScope } from "@deepseek-ai/dsh-settings";
@@ -176,17 +177,43 @@ function parseAgentSessionPackage(bytes: Buffer): AgentSessionPackage | null {
   return pack as AgentSessionPackage;
 }
 
-/** 还原会话的落地工作区：显式传入 > 来源 cwd（本机存在才用）> host 进程 cwd */
-function pickWorkspaceCwd(wanted: string | undefined, fromPack: string | undefined): string {
-  if (wanted) return wanted;
-  if (fromPack && isAbsolute(fromPack) && existsSync(fromPack)) {
-    try {
-      if (statSync(fromPack).isDirectory()) return fromPack;
-    } catch {
-      // 读取失败则退回 host cwd
-    }
+/** 克隆会话的落地工作区名（用户主目录下的同名目录 + 工作区标题） */
+const CLONE_WORKSPACE_NAME = "DSH-Talk";
+
+/**
+ * 克隆会话的默认落地目录：用户主目录下的 DSH-Talk，不存在则新建。
+ * 不写死绝对路径 —— 每个用户的家目录不同，用 homedir() 现算。
+ */
+function ensureCloneWorkspaceDir(): string {
+  const dir = join(homedir(), CLONE_WORKSPACE_NAME);
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+/** DSH 工作区注册表的最小结构面（不引入 @deepseek-ai/dsh-workspace 类型包依赖） */
+interface WorkspaceRegistryLike {
+  create(path: string, title?: string): Promise<WorkspaceLike>;
+}
+
+interface WorkspaceLike {
+  readonly title: string;
+  attachSession(sessionId: string): Promise<void>;
+}
+
+/**
+ * 把刚还原的会话挂进「DSH-Talk」工作区。工作区按目录注册：同一目录已注册时
+ * 直接复用那条记录（标题保持不变），因此重复克隆都落在同一个工作区里。
+ * 注册表不可用或挂载失败时静默跳过（会话照常可用，只是留在「未分组」）。
+ */
+async function attachToCloneWorkspace(ctx: Context, sessionId: string, cwd: string): Promise<void> {
+  const registry = serviceOf<WorkspaceRegistryLike>(ctx, "workspaceRegistry");
+  if (!registry) return;
+  try {
+    const workspace = await registry.create(cwd, CLONE_WORKSPACE_NAME);
+    await workspace.attachSession(sessionId);
+  } catch {
+    // 尽力而为：工作区归属失败不该让克隆失败
   }
-  return process.cwd();
 }
 
 function buildSessionPackage(
@@ -383,11 +410,12 @@ function talkRoutes(ctx: Context, scope: SettingsScope<TalkSettings>): WebRoute[
             sendJson(res, 503, { code: "INTERNAL", message: "会话服务不可用" });
             return;
           }
-          const session = store.create(undefined, {
-            seed: pack.events,
-            meta: { cwd: pickWorkspaceCwd(wantedCwd, pack.header.cwd) },
-          });
+          // 落地目录：显式传入优先；默认用户主目录下的 DSH-Talk（不存在则新建）
+          const cwd = wantedCwd ?? ensureCloneWorkspaceDir();
+          const session = store.create(undefined, { seed: pack.events, meta: { cwd } });
           await store.flush(session);
+          // 归入「DSH-Talk」工作区（同目录已注册则复用同一工作区）；失败不影响克隆
+          await attachToCloneWorkspace(ctx, session.id, cwd);
           sendJson(res, 200, {
             bytes: bytes.byteLength,
             elapsedMs: Date.now() - started,

@@ -34,7 +34,7 @@ export interface TalkSettings {
 export interface HostCloneRequest {
   /** 分享包下载地址（share 的 downloadUrl，GET /api/r2/objects/…?download=1） */
   downloadUrl: string;
-  /** 还原会话用的工作区绝对路径；缺省用来源 cwd（本机存在时）或 host 进程 cwd */
+  /** 还原会话用的工作区绝对路径；缺省用用户主目录下的 DSH-Talk（不存在时自动创建，并归入同名工作区） */
   cwd?: string;
 }
 
