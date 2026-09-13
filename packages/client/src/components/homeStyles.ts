@@ -223,33 +223,43 @@ export const composerWrap: CSSProperties = {
   background: palette.page,
   padding: "10px 14px",
   display: "flex",
-  gap: 8,
-  alignItems: "flex-end",
+  flexDirection: "column",
 };
 
-/** 输入整体外框：左侧操作区（分享 / 表情 / 附件）与输入框合并为同一个圆角容器 */
+/** 输入整体外框：输入框在上，操作条（分享 / 表情 / 附件 + 发送）在下 */
 export const composerBox: CSSProperties = {
-  flex: 1,
   minWidth: 0,
   display: "flex",
-  alignItems: "flex-end",
-  gap: 4,
-  padding: 4,
-  borderRadius: 12,
+  flexDirection: "column",
+  gap: 2,
+  padding: "6px 6px 6px 8px",
+  borderRadius: 16,
   border: `1px solid ${palette.border}`,
   background: palette.inputBg,
 };
 
+/** 输入框底部操作条：左侧三个操作按钮，右侧发送 */
+export const composerToolbar: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 2,
+};
+
+export const composerToolbarGap: CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+};
+
 /** 已并入 composerBox 外框，故自身不再描边、不再铺底色 */
 export const textArea: CSSProperties = {
-  flex: 1,
+  width: "100%",
   minHeight: 34,
   maxHeight: 160,
   resize: "none",
   border: "none",
   background: "transparent",
   color: palette.text,
-  padding: "7px 6px 7px 2px",
+  padding: "6px 4px 6px 2px",
   font: "inherit",
   fontSize: 14,
   outline: "none",

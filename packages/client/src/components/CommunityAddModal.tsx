@@ -19,10 +19,12 @@ import {
   AvatarPicker,
   fieldBlock,
   fieldLabel,
+  LoadingHint,
   palette,
   pillGroup,
   pillStyle,
   smallText,
+  Spinner,
 } from "./styles";
 import { TalkModal as Modal } from "./TalkModal";
 
@@ -76,6 +78,8 @@ export function CommunityAddModal({
   const [privacy, setPrivacy] = useState<"public" | "private">("public");
   const [iconUrl, setIconUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // 社区头像上传中
+  const [iconBusy, setIconBusy] = useState(false);
 
   // 我已在的社区（发现页据此把「加入」换成「进入」）
   const joinedIds = new Set(talk.communities.map((c) => c.id));
@@ -98,7 +102,9 @@ export function CommunityAddModal({
   }, [open]);
 
   async function pickIcon(file: File): Promise<void> {
+    setIconBusy(true);
     const url = await uploadImage(file);
+    setIconBusy(false);
     if (url) setIconUrl(url);
   }
 
@@ -215,7 +221,7 @@ export function CommunityAddModal({
                 onRemove={() => setIconUrl(null)}
                 uploadLabel="设置头像"
                 removeLabel="移除头像"
-                busy={busy}
+                busy={busy || iconBusy}
                 kind="community"
               />
             </div>
@@ -276,12 +282,17 @@ export function CommunityAddModal({
                 placeholder="搜索公开社区（名称 / 简介）"
                 aria-label="搜索公开社区"
               />
-              <Button variant="outline" onClick={() => void loadDiscover(keyword)}>
-                搜索
+              <Button
+                variant="outline"
+                icon={discoverLoading ? <Spinner size={14} /> : undefined}
+                disabled={discoverLoading}
+                onClick={() => void loadDiscover(keyword)}
+              >
+                {discoverLoading ? "搜索中…" : "搜索"}
               </Button>
             </div>
             {discoverLoading ? (
-              <div style={{ ...smallText, padding: "8px 2px" }}>加载社区…</div>
+              <LoadingHint text="加载社区…" padding="8px 2px" />
             ) : discoverItems.length === 0 ? (
               <div style={{ ...smallText, padding: "8px 2px" }}>没有找到公开社区。</div>
             ) : (
@@ -314,6 +325,7 @@ export function CommunityAddModal({
                       <Button
                         size="sm"
                         variant={joined ? "ghost" : "primary"}
+                        icon={joiningId === item.id ? <Spinner size={14} /> : undefined}
                         disabled={joiningId !== null}
                         onClick={() => (joined ? void openCommunity(item.id) : void enter(item.id))}
                       >

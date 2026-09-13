@@ -6,6 +6,7 @@
 import { Button } from "@deepseek-ai/dsh-client-ui-primitives";
 import type { InboxItem } from "@dsh-talk/types/api";
 import type { CSSProperties, ReactElement } from "react";
+import { useState } from "react";
 import {
   acceptInvite,
   askConfirm,
@@ -14,7 +15,7 @@ import {
   markAllNotificationsRead,
   useTalkState,
 } from "../store";
-import { Avatar, palette, smallText, timeLabel } from "./styles";
+import { Avatar, palette, smallText, Spinner, timeLabel } from "./styles";
 import { TalkModal as Modal } from "./TalkModal";
 
 function BellGlyph({ size = 16 }: { size?: number }): ReactElement {
@@ -55,6 +56,8 @@ function InboxRow({ item }: { item: InboxItem }): ReactElement {
   const talk = useTalkState();
   const invite = item.invite;
   const busy = talk.inboxBusyId !== null && invite?.id === talk.inboxBusyId;
+  // 本行正在提交的动作：按钮据此显示对应加载文案
+  const [pending, setPending] = useState<"accept" | "decline" | null>(null);
   const communityName = item.data?.communityName ?? "";
   const icon = item.data?.communityIconUrl ?? null;
 
@@ -117,25 +120,33 @@ function InboxRow({ item }: { item: InboxItem }): ReactElement {
               <Button
                 size="sm"
                 variant="primary"
-                disabled={busy}
-                onClick={() => void acceptInvite(invite.id)}
+                disabled={busy || pending !== null}
+                icon={pending === "accept" ? <Spinner size={14} /> : undefined}
+                onClick={() => {
+                  setPending("accept");
+                  void acceptInvite(invite.id).finally(() => setPending(null));
+                }}
               >
-                {busy ? "加入中…" : "加入"}
+                {pending === "accept" ? "加入中…" : "加入"}
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
-                disabled={busy}
+                disabled={busy || pending !== null}
+                icon={pending === "decline" ? <Spinner size={14} /> : undefined}
                 onClick={async () => {
                   const ok = await askConfirm({
                     title: "拒绝社区邀请",
                     message: "拒绝后这条邀请失效，需要对方重新邀请才能加入。",
                     confirmLabel: "拒绝邀请",
                   });
-                  if (ok) void declineInvite(invite.id);
+                  if (!ok) return;
+                  setPending("decline");
+                  await declineInvite(invite.id);
+                  setPending(null);
                 }}
               >
-                拒绝
+                {pending === "decline" ? "拒绝中…" : "拒绝"}
               </Button>
             </>
           ) : (
@@ -153,6 +164,7 @@ export function InboxDialog(): ReactElement | null {
   const talk = useTalkState();
   const unread = talk.inboxUnread;
   const hasInvites = talk.notifications.length > 0;
+  const [markingAll, setMarkingAll] = useState(false);
 
   return (
     <Modal
@@ -165,10 +177,14 @@ export function InboxDialog(): ReactElement | null {
         <Button
           variant="ghost"
           size="sm"
-          disabled={unread === 0}
-          onClick={() => void markAllNotificationsRead()}
+          icon={markingAll ? <Spinner size={14} /> : undefined}
+          disabled={unread === 0 || markingAll}
+          onClick={() => {
+            setMarkingAll(true);
+            void markAllNotificationsRead().finally(() => setMarkingAll(false));
+          }}
         >
-          全部已读
+          {markingAll ? "处理中…" : "全部已读"}
         </Button>
       }
     >

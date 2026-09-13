@@ -17,7 +17,7 @@ import {
   updateUserUsername,
   useTalkState,
 } from "../store";
-import { AvatarPicker, fieldLabel, palette, smallText } from "./styles";
+import { AvatarPicker, fieldLabel, palette, smallText, Spinner } from "./styles";
 import { TalkModal as Modal } from "./TalkModal";
 
 /** 只读信息行：左侧标签，右侧值（单行省略） */
@@ -114,6 +114,7 @@ export function ProfileModal({
   const [newPwd, setNewPwd] = useState("");
   const [confirmPwd, setConfirmPwd] = useState("");
   const [pwdBusy, setPwdBusy] = useState(false);
+  const [logoutBusy, setLogoutBusy] = useState(false);
 
   // 打开时用当前昵称预填（保存成功后 displayName 变化也会同步回填）
   useEffect(() => {
@@ -144,7 +145,10 @@ export function ProfileModal({
       confirmLabel: "确认退出",
       danger: true,
     });
-    if (ok) void logout();
+    if (!ok) return;
+    setLogoutBusy(true);
+    await logout();
+    setLogoutBusy(false);
   }
 
   async function pickAvatar(file: File): Promise<void> {
@@ -214,10 +218,12 @@ export function ProfileModal({
           </Button>
           <Button
             variant="outline"
+            icon={logoutBusy ? <Spinner size={14} /> : undefined}
+            disabled={logoutBusy}
             style={{ color: palette.danger, borderColor: palette.danger }}
             onClick={() => void confirmLogout()}
           >
-            退出登录
+            {logoutBusy ? "退出中…" : "退出登录"}
           </Button>
         </>
       }

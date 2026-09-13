@@ -14,7 +14,7 @@ import { CommunityAddModal } from "./CommunityAddModal";
 import { chatCol, emptyCard, messageRowCss } from "./homeStyles";
 import { InboxDialog } from "./Inbox";
 import { ProfileModal } from "./ProfileModal";
-import { BrandLogo, palette, smallText } from "./styles";
+import { BrandLogo, LoadingHint, palette, smallText } from "./styles";
 import { ThreadCreateModal } from "./ThreadModals";
 
 /** 项目仓库地址（logo hover 卡里的唯一外链） */
@@ -32,6 +32,8 @@ export function HomeScreen(): ReactElement {
     seed: { name: string; starterMessageId?: string } | null;
   } | null>(null);
   const inCommunity = talk.view.communityId !== null;
+  // 打开社区时 server 在境外、拉取详情偏慢：先给出整体加载态，避免中栏空窗
+  const communityBooting = inCommunity && talk.view.communityLoading && !talk.view.community;
 
   return (
     <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
@@ -41,7 +43,11 @@ export function HomeScreen(): ReactElement {
         onInbox={() => void openInbox()}
         onOpenProfile={() => setShowProfile(true)}
       />
-      {inCommunity ? (
+      {communityBooting ? (
+        <div style={{ ...chatCol, alignItems: "center", justifyContent: "center" }}>
+          <LoadingHint text="正在进入社区…" />
+        </div>
+      ) : inCommunity ? (
         <>
           <ChannelList onCreateThread={(channelId) => setThreadCreate({ channelId, seed: null })} />
           <ChatPane onCreateThread={(channelId, seed) => setThreadCreate({ channelId, seed })} />

@@ -41,7 +41,7 @@ import {
 } from "../store";
 import { memberPanel, memberPanelCss } from "./homeStyles";
 import { MemberRolesDialog } from "./Manage";
-import { Avatar, palette, smallText, timeLabel } from "./styles";
+import { Avatar, LoadingHint, palette, smallText, Spinner, timeLabel } from "./styles";
 
 /** 在线态文案与颜色（在线 / 离开均计入「在线」分组） */
 const PRESENCE_LABEL: Record<ChannelOnlineMember["presence"], string> = {
@@ -124,11 +124,14 @@ function PanelRow({
   member,
   status,
   items,
+  busy,
   onSelect,
 }: {
   member: MemberLite;
   status: ChannelOnlineMember["presence"];
   items: MenuEntry[];
+  /** 该成员有请求进行中：菜单入口换成转圈并禁用 */
+  busy?: boolean;
   onSelect: (id: string) => void;
 }): ReactElement {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -144,7 +147,11 @@ function PanelRow({
         </div>
         <div style={{ ...smallText, fontSize: 14 }}>@{member.handle}</div>
       </div>
-      {items.length > 0 ? (
+      {busy ? (
+        <span style={{ display: "inline-flex", padding: "0 8px", color: palette.muted }}>
+          <Spinner size={14} />
+        </span>
+      ) : items.length > 0 ? (
         <Menu
           open={menuOpen}
           onClose={() => setMenuOpen(false)}
@@ -190,7 +197,10 @@ export function MemberPanel({
   const canKick = canKickMembers();
   const canBan = canBanMembers();
   const [bans, setBans] = useState<CommunityBanItem[]>([]);
+  const [bansLoading, setBansLoading] = useState(false);
   const [assigning, setAssigning] = useState<MemberLite | null>(null);
+  // 正在处理的成员 / 封禁用户 id：对应行显示转圈并禁用操作
+  const [busyUserId, setBusyUserId] = useState<ID | null>(null);
   const [everyoneMenuOpen, setEveryoneMenuOpen] = useState(false);
   // 「设为管理员」快捷入口：分配带 ADMINISTRATOR 位的角色（没有则先建「管理员」）。
   // 已持有任一管理员角色的成员不再显示；目标角色层级必须严格低于自己。
@@ -203,8 +213,11 @@ export function MemberPanel({
   useEffect(() => {
     if (!canBan) return;
     let cancelled = false;
+    setBansLoading(true);
     void listBannedUsers().then((list) => {
-      if (!cancelled) setBans(list);
+      if (cancelled) return;
+      setBans(list);
+      setBansLoading(false);
     });
     return () => {
       cancelled = true;
@@ -232,10 +245,14 @@ export function MemberPanel({
 
   /** 一键把成员设为管理员：分配带 ADMINISTRATOR 位的角色（没有则先建「管理员」） */
   async function makeAdmin(m: MemberLite): Promise<void> {
+    if (busyUserId !== null) return;
+    setBusyUserId(m.userId);
     const roleId = await ensureAdminRole();
-    if (roleId === null) return;
-    const next = m.roleIds.includes(roleId) ? m.roleIds : [...m.roleIds, roleId];
-    if (await setMemberRoles(m.userId, next)) await reload();
+    if (roleId !== null) {
+      const next = m.roleIds.includes(roleId) ? m.roleIds : [...m.roleIds, roleId];
+      if (await setMemberRoles(m.userId, next)) await reload();
+    }
+    setBusyUserId(null);
   }
 
   async function kick(m: MemberLite): Promise<void> {
@@ -245,8 +262,10 @@ export function MemberPanel({
       confirmLabel: "移除成员",
       danger: true,
     });
-    if (!ok) return;
+    if (!ok || busyUserId !== null) return;
+    setBusyUserId(m.userId);
     if (await kickMember(m.userId)) await reload();
+    setBusyUserId(null);
   }
 
   async function ban(m: MemberLite): Promise<void> {
@@ -256,11 +275,13 @@ export function MemberPanel({
       confirmLabel: "封禁成员",
       danger: true,
     });
-    if (!ok) return;
+    if (!ok || busyUserId !== null) return;
+    setBusyUserId(m.userId);
     if (await banUser(m.userId)) {
       await reload();
       setBans(await listBannedUsers());
     }
+    setBusyUserId(null);
   }
 
   async function transfer(m: MemberLite): Promise<void> {
@@ -270,8 +291,10 @@ export function MemberPanel({
       confirmLabel: "确认转让",
       danger: true,
     });
-    if (!ok) return;
+    if (!ok || busyUserId !== null) return;
+    setBusyUserId(m.userId);
     await transferOwner(m.userId);
+    setBusyUserId(null);
   }
 
   async function unban(item: CommunityBanItem): Promise<void> {
@@ -280,10 +303,12 @@ export function MemberPanel({
       message: "解封后 TA 可以重新加入社区，原有的成员身份不会自动恢复。",
       confirmLabel: "解除封禁",
     });
-    if (!ok) return;
+    if (!ok || busyUserId !== null) return;
+    setBusyUserId(item.userId);
     if (await unbanUser(item.userId)) {
       setBans((prev) => prev.filter((b) => b.userId !== item.userId));
     }
+    setBusyUserId(null);
   }
 
   /** 成员的三点菜单：按「提及 + 可管理层级 + 各自权限位」逐项判定 */
@@ -364,57 +389,71 @@ export function MemberPanel({
             portal
           />
         </div>
-        <div style={groupTitle}>在线 — {online.length}</div>
-        {online.length === 0 ? (
-          <div style={{ ...smallText, fontSize: 14, padding: "4px 10px" }}>暂无成员在线</div>
+        {talk.view.membersLoading && talk.view.members.length === 0 ? (
+          <LoadingHint text="加载成员…" />
         ) : (
-          online.map((m) => (
-            <PanelRow
-              key={m.userId}
-              member={m}
-              status={presenceStatus(m.userId)}
-              items={rowItems(m)}
-              onSelect={(id) => onRowAction(id, m)}
-            />
-          ))
+          <>
+            <div style={groupTitle}>在线 — {online.length}</div>
+            {online.length === 0 ? (
+              <div style={{ ...smallText, fontSize: 14, padding: "4px 10px" }}>暂无成员在线</div>
+            ) : (
+              online.map((m) => (
+                <PanelRow
+                  key={m.userId}
+                  member={m}
+                  status={presenceStatus(m.userId)}
+                  items={rowItems(m)}
+                  busy={busyUserId === m.userId}
+                  onSelect={(id) => onRowAction(id, m)}
+                />
+              ))
+            )}
+            <div style={groupTitle}>离线 — {offline.length}</div>
+            {offline.length === 0 ? (
+              <div style={{ ...smallText, fontSize: 14, padding: "4px 10px" }}>没有离线成员</div>
+            ) : (
+              offline.map((m) => (
+                <PanelRow
+                  key={m.userId}
+                  member={m}
+                  status={presenceStatus(m.userId)}
+                  items={rowItems(m)}
+                  busy={busyUserId === m.userId}
+                  onSelect={(id) => onRowAction(id, m)}
+                />
+              ))
+            )}
+          </>
         )}
-        <div style={groupTitle}>离线 — {offline.length}</div>
-        {offline.length === 0 ? (
-          <div style={{ ...smallText, fontSize: 14, padding: "4px 10px" }}>没有离线成员</div>
-        ) : (
-          offline.map((m) => (
-            <PanelRow
-              key={m.userId}
-              member={m}
-              status={presenceStatus(m.userId)}
-              items={rowItems(m)}
-              onSelect={(id) => onRowAction(id, m)}
-            />
-          ))
-        )}
-        {canBan && bans.length > 0 ? (
+        {canBan && (bansLoading || bans.length > 0) ? (
           <>
             <div style={groupTitle}>已封禁用户 — {bans.length}</div>
-            {bans.map((b) => (
-              <div key={b.userId} className="dsht-member-row" style={memberRow}>
-                <Avatar label={b.user.handle} src={b.user.avatarUrl} size={24} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={nameRow}>@{b.user.handle}</div>
-                  <div style={{ ...smallText, fontSize: 14 }}>
-                    封禁于 {timeLabel(b.createdAt)}
-                    {b.reason ? ` · ${b.reason}` : ""}
+            {bansLoading ? (
+              <LoadingHint text="加载封禁用户…" />
+            ) : (
+              bans.map((b) => (
+                <div key={b.userId} className="dsht-member-row" style={memberRow}>
+                  <Avatar label={b.user.handle} src={b.user.avatarUrl} size={24} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={nameRow}>@{b.user.handle}</div>
+                    <div style={{ ...smallText, fontSize: 14 }}>
+                      封禁于 {timeLabel(b.createdAt)}
+                      {b.reason ? ` · ${b.reason}` : ""}
+                    </div>
                   </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={busyUserId === b.userId ? <Spinner size={14} /> : undefined}
+                    disabled={busyUserId !== null}
+                    onClick={() => void unban(b)}
+                    aria-label={`解封 ${b.user.handle}`}
+                  >
+                    {busyUserId === b.userId ? "解封中…" : "解封"}
+                  </Button>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => void unban(b)}
-                  aria-label={`解封 ${b.user.handle}`}
-                >
-                  解封
-                </Button>
-              </div>
-            ))}
+              ))
+            )}
           </>
         ) : null}
       </div>

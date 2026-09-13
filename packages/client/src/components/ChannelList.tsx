@@ -12,7 +12,7 @@ import { Fragment, type ReactElement, useState } from "react";
 import { openThread, selectChannel, useTalkState } from "../store";
 import { activeTile, midCol, privacyBadge, railScroll, sectionTitle } from "./homeStyles";
 import { ChannelRowMenu, CommunityTools } from "./Manage";
-import { palette } from "./styles";
+import { palette, Spinner } from "./styles";
 import { ThreadJoinModal } from "./ThreadModals";
 
 export function ChannelList({
@@ -99,6 +99,11 @@ export function ChannelList({
                   >
                     {ch.name}
                   </span>
+                  {active && talk.view.messagesLoading ? (
+                    <span style={{ display: "inline-flex", flex: "0 0 auto", color: palette.muted }}>
+                      <Spinner size={12} />
+                    </span>
+                  ) : null}
                 </button>
                 <ChannelRowMenu channel={ch} onCreateThread={onCreateThread} />
               </div>

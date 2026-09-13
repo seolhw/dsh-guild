@@ -25,10 +25,12 @@ import {
   fieldLabel,
   listCard,
   listCardName,
+  LoadingHint,
   palette,
   pillGroup,
   pillStyle,
   smallText,
+  Spinner,
 } from "./styles";
 import { TalkModal as Modal } from "./TalkModal";
 
@@ -407,6 +409,8 @@ export function ThreadMembersModal({
   const [candidates, setCandidates] = useState<User[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  // 可拉入候选的加载 / 搜索中状态
+  const [candidatesLoading, setCandidatesLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const canManage = thread.createdBy === me?.id || canManageThreads();
 
@@ -420,8 +424,11 @@ export function ThreadMembersModal({
       setMembers(list);
       setLoading(false);
     });
+    setCandidatesLoading(true);
     void listThreadCandidates(thread.id, "").then((list) => {
-      if (!cancelled) setCandidates(list);
+      if (cancelled) return;
+      setCandidates(list);
+      setCandidatesLoading(false);
     });
     return () => {
       cancelled = true;
@@ -430,8 +437,10 @@ export function ThreadMembersModal({
 
   async function searchCandidates(value: string): Promise<void> {
     setQuery(value);
+    setCandidatesLoading(true);
     const list = await listThreadCandidates(thread.id, value);
     setCandidates(list);
+    setCandidatesLoading(false);
   }
 
   async function invite(userId: string): Promise<void> {
@@ -491,7 +500,7 @@ export function ThreadMembersModal({
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <span style={fieldLabel}>成员（{members.length}）</span>
           {loading ? (
-            <div style={{ ...smallText, padding: "8px 2px" }}>加载成员…</div>
+            <LoadingHint text="加载成员…" padding="8px 2px" />
           ) : members.length === 0 ? (
             <div style={{ ...smallText, padding: "8px 2px" }}>还没有成员。</div>
           ) : (
@@ -516,19 +525,21 @@ export function ThreadMembersModal({
                     <Button
                       size="sm"
                       variant="ghost"
+                      icon={busyId === m.userId ? <Spinner size={14} /> : undefined}
                       disabled={busyId !== null}
                       onClick={() => void remove(m.userId, true)}
                     >
-                      退出
+                      {busyId === m.userId ? "退出中…" : "退出"}
                     </Button>
                   ) : canManage && !isCreator ? (
                     <Button
                       size="sm"
                       variant="ghost"
+                      icon={busyId === m.userId ? <Spinner size={14} /> : undefined}
                       disabled={busyId !== null}
                       onClick={() => void remove(m.userId, false)}
                     >
-                      移出
+                      {busyId === m.userId ? "移出中…" : "移出"}
                     </Button>
                   ) : null}
                 </div>
@@ -544,7 +555,9 @@ export function ThreadMembersModal({
             placeholder="搜索 @用户名 / 昵称"
             aria-label="搜索可拉入的成员"
           />
-          {candidates.length === 0 ? (
+          {candidatesLoading ? (
+            <LoadingHint text="加载可拉入成员…" padding="4px 2px" />
+          ) : candidates.length === 0 ? (
             <div style={{ ...smallText, padding: "4px 2px" }}>没有可拉入的成员。</div>
           ) : (
             candidates.map((u) => (
@@ -567,11 +580,11 @@ export function ThreadMembersModal({
                 <Button
                   size="sm"
                   variant="ghost"
-                  icon={<IconPlusOutline16 />}
+                  icon={busyId === u.id ? <Spinner size={14} /> : <IconPlusOutline16 />}
                   disabled={busyId !== null}
                   onClick={() => void invite(u.id)}
                 >
-                  拉入
+                  {busyId === u.id ? "拉入中…" : "拉入"}
                 </Button>
               </div>
             ))

@@ -19,7 +19,7 @@ import {
   railScroll,
 } from "./homeStyles";
 import { BellGlyph } from "./Inbox";
-import { Avatar, BrandLogo, palette } from "./styles";
+import { Avatar, BrandLogo, palette, Spinner } from "./styles";
 
 // ---------------- hover 卡片排版（社区栏统一） ----------------
 
@@ -260,7 +260,21 @@ export function CommunitiesRail({
                     inset={4}
                     kind="community"
                   />
-                  {mention > 0 ? (
+                  {active && talk.view.communityLoading ? (
+                    <span
+                      style={{
+                        ...railBubble,
+                        background: palette.elevated,
+                        border: `1px solid ${palette.border}`,
+                        color: palette.text,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Spinner size={12} />
+                    </span>
+                  ) : mention > 0 ? (
                     <span style={{ ...railBubble, background: palette.accent }}>{mention}</span>
                   ) : unread > 0 ? (
                     <span style={railBubble}>{unread}</span>

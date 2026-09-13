@@ -9,7 +9,6 @@ import {
   IconCloseOutline16,
   IconDownloadOutline16,
   IconEditOutline16,
-  IconLoadingOutline16,
   IconTrashOutline16,
 } from "@deepseek-ai/dsh-client-ui-primitives";
 import { type MessageAttachment, Permission } from "@dsh-talk/types/entities";
@@ -35,7 +34,7 @@ import { EmojiPopover } from "./EmojiPicker";
 import { formatBytes, msgChip, msgRow, replyParts, textAreaEdit } from "./homeStyles";
 import { Markdown } from "./Markdown";
 import { ShareCardView } from "./ShareModals";
-import { Avatar, palette, smallText, timeLabel } from "./styles";
+import { Avatar, palette, smallText, Spinner, timeLabel } from "./styles";
 
 /** 回复（引用）小图标：拐角返回箭头，随按钮颜色 */
 export function ReplyGlyph(): ReactElement {
@@ -194,18 +193,31 @@ function reactionChipStyle(mine: boolean): CSSProperties {
 /** 消息底部的一排回应：表情 + 计数，点击切换自己的回应 */
 function ReactionRow({ item }: { item: MessageItem }): ReactElement | null {
   const reactions = item.reactions ?? [];
+  // 正在切换的回应表情：切换期间禁用整排，避免重复提交
+  const [busyEmoji, setBusyEmoji] = useState<string | null>(null);
   if (reactions.length === 0) return null;
+
+  async function react(emoji: string): Promise<void> {
+    if (busyEmoji !== null) return;
+    setBusyEmoji(emoji);
+    await toggleReaction(item, emoji);
+    setBusyEmoji(null);
+  }
+
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
       {reactions.map((reaction) => (
         <button
           key={reaction.emoji}
           type="button"
-          onClick={() => void toggleReaction(item, reaction.emoji)}
+          disabled={busyEmoji !== null}
+          onClick={() => void react(reaction.emoji)}
           title={reaction.me ? `取消回应 ${reaction.emoji}` : `回应 ${reaction.emoji}`}
           style={reactionChipStyle(reaction.me)}
         >
-          <span style={{ fontSize: 14, lineHeight: 1.2 }}>{reaction.emoji}</span>
+          <span style={{ fontSize: 14, lineHeight: 1.2 }}>
+            {busyEmoji === reaction.emoji ? <Spinner size={12} /> : reaction.emoji}
+          </span>
           <span>{reaction.count}</span>
         </button>
       ))}
@@ -226,6 +238,11 @@ export function MessageRow({
   const [editing, setEditing] = useState(false);
   const [reactionOpen, setReactionOpen] = useState(false);
   const [draftText, setDraftText] = useState(item.content);
+  // 各消息操作请求进行中（保存编辑 / 撤回 / 置顶 / 快捷回应）
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [pinning, setPinning] = useState(false);
+  const [reacting, setReacting] = useState<string | null>(null);
   const mine = talk.me !== null && item.authorId === talk.me.id;
   const mentionedMe = (item.mentions ?? []).includes(talk.me?.id ?? "");
   const focused = talk.view.focusMessageId === item.id;
@@ -243,16 +260,21 @@ export function MessageRow({
     (channelPerms & Permission.CREATE_THREAD) !== 0;
 
   async function saveEdit(): Promise<void> {
+    if (savingEdit) return;
+    setSavingEdit(true);
     try {
       await updateMessage(item.id, draftText);
       setEditing(false);
     } catch {
       // 错误已 toast
+    } finally {
+      setSavingEdit(false);
     }
   }
 
   /** 撤回（自己的消息，2 分钟内）或删除（owner/admin） */
   async function remove(): Promise<void> {
+    if (removing) return;
     const confirmed = await askConfirm(
       mine
         ? {
@@ -269,11 +291,30 @@ export function MessageRow({
           },
     );
     if (!confirmed) return;
+    setRemoving(true);
     try {
       await deleteMessage(item.id);
     } catch {
       // 错误已 toast（例如已超过 2 分钟撤回窗口）
+    } finally {
+      setRemoving(false);
     }
+  }
+
+  /** 置顶 / 取消置顶 */
+  async function togglePin(): Promise<void> {
+    if (pinning) return;
+    setPinning(true);
+    await setMessagePinned(item, item.pinnedAt === null);
+    setPinning(false);
+  }
+
+  /** 快捷回应 / 表情面板回应 */
+  async function react(emoji: string): Promise<void> {
+    if (reacting !== null) return;
+    setReacting(emoji);
+    await toggleReaction(item, emoji);
+    setReacting(null);
   }
 
   async function jumpQuote(): Promise<void> {
@@ -399,15 +440,17 @@ export function MessageRow({
               size="sm"
               variant="ghost"
               icon={<IconCloseOutline16 />}
+              disabled={savingEdit}
               onClick={() => setEditing(false)}
               aria-label="取消编辑"
             />
             <Button
               size="sm"
               variant="ghost"
-              icon={<IconLoadingOutline16 />}
+              icon={savingEdit ? <Spinner size={14} /> : <IconEditOutline16 />}
+              disabled={savingEdit}
               onClick={() => void saveEdit()}
-              aria-label="保存"
+              aria-label={savingEdit ? "保存中" : "保存"}
             />
           </>
         ) : (
@@ -415,11 +458,12 @@ export function MessageRow({
             <EmojiPopover
               open={reactionOpen}
               onOpenChange={setReactionOpen}
-              onPick={(emoji) => void toggleReaction(item, emoji)}
+              onPick={(emoji) => void react(emoji)}
               size="sm"
               align="right"
               label="添加表情回应"
               title="添加表情回应"
+              disabled={reacting !== null}
             />
             {QUICK_REACTIONS.map((emoji) => {
               const reacted = (item.reactions ?? []).some((r) => r.emoji === emoji && r.me);
@@ -428,12 +472,13 @@ export function MessageRow({
                   key={emoji}
                   type="button"
                   className="dsht-quick-react"
-                  onClick={() => void toggleReaction(item, emoji)}
+                  disabled={reacting !== null}
+                  onClick={() => void react(emoji)}
                   title={reacted ? `取消回应 ${emoji}` : `回应 ${emoji}`}
                   aria-label={reacted ? `取消回应 ${emoji}` : `回应 ${emoji}`}
                   style={quickReactionStyle(reacted)}
                 >
-                  {emoji}
+                  {reacting === emoji ? <Spinner size={12} /> : emoji}
                 </button>
               );
             })}
@@ -461,8 +506,9 @@ export function MessageRow({
               <Button
                 size="sm"
                 variant="ghost"
-                icon={<PinGlyph />}
-                onClick={() => void setMessagePinned(item, item.pinnedAt === null)}
+                icon={pinning ? <Spinner size={14} /> : <PinGlyph />}
+                disabled={pinning}
+                onClick={() => void togglePin()}
                 aria-label={item.pinnedAt === null ? "置顶" : "取消置顶"}
                 title={item.pinnedAt === null ? "置顶这条消息" : "取消置顶"}
               />
@@ -481,9 +527,10 @@ export function MessageRow({
               <Button
                 size="sm"
                 variant="ghost"
-                icon={<IconTrashOutline16 />}
+                icon={removing ? <Spinner size={14} /> : <IconTrashOutline16 />}
+                disabled={removing}
                 onClick={() => void remove()}
-                aria-label={mine ? "撤回" : "删除"}
+                aria-label={removing ? "处理中" : mine ? "撤回" : "删除"}
                 title={mine ? "撤回消息（2 分钟内）" : "删除消息"}
               />
             ) : null}

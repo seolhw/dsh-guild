@@ -14,7 +14,7 @@ import {
   useTalkState,
 } from "../store";
 import { emptyMsg } from "./homeStyles";
-import { palette, smallText, timeLabel } from "./styles";
+import { palette, smallText, Spinner, timeLabel } from "./styles";
 import { TalkModal as Modal } from "./TalkModal";
 
 /** 时间范围筛选：前端换算成 from 时间戳（服务端按含端点区间过滤） */
@@ -90,6 +90,8 @@ export function SearchMessagesModal({
   const [items, setItems] = useState<SearchMessageResult[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  // 正在跳转定位的命中 id：该行显示转圈并禁用点击
+  const [openingId, setOpeningId] = useState<string | null>(null);
 
   // 每次打开重置搜索状态
   useEffect(() => {
@@ -140,7 +142,10 @@ export function SearchMessagesModal({
   }
 
   async function openHit(hit: SearchMessageResult): Promise<void> {
+    if (openingId !== null) return;
+    setOpeningId(hit.id);
     const ok = await revealMessage(hit.channelId, hit.id, hit.thread?.id ?? null);
+    setOpeningId(null);
     if (ok) onClose();
     else notify("该消息较旧，未能定位（可去对应频道向上加载更早消息）");
   }
@@ -251,6 +256,7 @@ export function SearchMessagesModal({
               <button
                 key={hit.id}
                 type="button"
+                disabled={openingId !== null}
                 onClick={() => void openHit(hit)}
                 style={{
                   display: "block",
@@ -287,6 +293,17 @@ export function SearchMessagesModal({
                   >
                     {hit.author.displayName ?? hit.author.handle}
                   </span>
+                  {openingId === hit.id ? (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        flex: "0 0 auto",
+                        color: palette.muted,
+                      }}
+                    >
+                      <Spinner size={14} />
+                    </span>
+                  ) : null}
                 </div>
                 <div
                   style={{

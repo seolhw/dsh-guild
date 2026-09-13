@@ -15,7 +15,7 @@ import { orderBy, partition } from "es-toolkit/array";
 import { type CSSProperties, type ReactElement, useState } from "react";
 import { channelPermissions, openThread, reloadCommunityDetail, useTalkState } from "../store";
 import { emptyMsg, privacyBadge } from "./homeStyles";
-import { palette, smallText, timeLabel } from "./styles";
+import { palette, smallText, Spinner, timeLabel } from "./styles";
 import { ThreadJoinModal } from "./ThreadModals";
 
 /** 单个话题行（帖子式：标题 + 发起人/活跃时间/回复数），点击进入话题内聊天 */
@@ -168,7 +168,17 @@ export function ForumTopicBoard({
 }): ReactElement | null {
   const talk = useTalkState();
   const [archivedOpen, setArchivedOpen] = useState(false);
+  // 刷新话题列表请求进行中
+  const [refreshing, setRefreshing] = useState(false);
   const channel = talk.view.community?.channels.find((c) => c.id === channelId) ?? null;
+
+  /** 重新拉取社区详情（含最新话题回复与未读） */
+  async function refreshTopics(): Promise<void> {
+    if (refreshing) return;
+    setRefreshing(true);
+    await reloadCommunityDetail();
+    setRefreshing(false);
+  }
   if (channel?.kind !== "forum") return null;
   // 建话题 = 在该频道创建讨论组，需 CREATE_THREAD 权限位
   const canPost = (channelPermissions(channelId) & Permission.CREATE_THREAD) !== 0;
@@ -247,9 +257,10 @@ export function ForumTopicBoard({
           <Button
             size="sm"
             variant="ghost"
-            icon={<IconRefreshOutline16 />}
-            onClick={() => void reloadCommunityDetail()}
-            aria-label="刷新话题"
+            icon={refreshing ? <Spinner size={14} /> : <IconRefreshOutline16 />}
+            disabled={refreshing}
+            onClick={() => void refreshTopics()}
+            aria-label={refreshing ? "刷新中" : "刷新话题"}
             title="刷新话题列表（含最新回复与未读）"
           />
           {canPost ? (

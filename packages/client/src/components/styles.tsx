@@ -161,6 +161,79 @@ export const listCardName: CSSProperties = {
  */
 export const talkLogoUrl = `data:image/svg+xml;utf8,${encodeURIComponent(__DSH_TALK_LOGO_SVG__)}`;
 
+// ---------------- 加载指示器 ----------------
+
+/** Spinner 旋转动画（@keyframes 不能用内联样式，挂载时注入一次） */
+const SPINNER_CSS = `
+@keyframes dsht-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dsht-spinner { animation-duration: 1.6s !important; }
+}
+`;
+
+let spinnerCssInjected = false;
+
+function ensureSpinnerCss(): void {
+  if (spinnerCssInjected) return;
+  const style = document.createElement("style");
+  style.setAttribute("data-dsht-spinner-css", "");
+  style.textContent = SPINNER_CSS;
+  document.head.appendChild(style);
+  spinnerCssInjected = true;
+}
+
+/**
+ * 行内加载指示器（转圈）：服务器在境外、请求偏慢时用于按钮/列表的行内反馈。
+ * 颜色跟随当前文字色，可放在 Button 的 icon 插槽或文字前。
+ */
+export function Spinner({ size = 14 }: { size?: number }): ReactElement {
+  ensureSpinnerCss();
+  return (
+    <span
+      className="dsht-spinner"
+      role="status"
+      aria-label="加载中"
+      style={{
+        width: size,
+        height: size,
+        flex: "0 0 auto",
+        display: "inline-block",
+        borderRadius: "50%",
+        border: `2px solid currentColor`,
+        borderTopColor: "transparent",
+        animation: "dsht-spin 0.7s linear infinite",
+      }}
+    />
+  );
+}
+
+/** 居中的加载提示（整块区域拉取数据时用） */
+export function LoadingHint({
+  text = "加载中…",
+  padding = "16px 4px",
+}: {
+  text?: string;
+  padding?: string;
+}): ReactElement {
+  return (
+    <div
+      style={{
+        ...smallText,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        padding,
+      }}
+    >
+      <Spinner size={14} />
+      <span>{text}</span>
+    </div>
+  );
+}
+
 /** 品牌 logo 标记：单色 mask 跟随宿主文字色，尺寸自定 */
 export function BrandLogo({ size = 34, title }: { size?: number; title?: string }): ReactElement {
   return (

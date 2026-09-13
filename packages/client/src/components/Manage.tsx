@@ -77,10 +77,12 @@ import {
   fieldLabel,
   listCard,
   listCardName,
+  LoadingHint,
   palette,
   pillGroup,
   pillStyle,
   smallText,
+  Spinner,
 } from "./styles";
 import { TalkModal as Modal } from "./TalkModal";
 
@@ -152,6 +154,8 @@ export function CommunityTools(): ReactElement | null {
   const talk = useTalkState();
   const [menuOpen, setMenuOpen] = useState(false);
   const [dialog, setDialog] = useState<CommunityDialog>(null);
+  // 退出社区请求进行中（禁用入口并显示转圈）
+  const [leaving, setLeaving] = useState(false);
   const communityId = talk.view.communityId;
   const canRoles = canManageRoles();
   const canChannel = isModerator();
@@ -196,7 +200,10 @@ export function CommunityTools(): ReactElement | null {
                 confirmLabel: "退出社区",
                 danger: true,
               });
-              if (ok) await leaveCommunity(communityId);
+              if (!ok) return;
+              setLeaving(true);
+              await leaveCommunity(communityId);
+              setLeaving(false);
             })();
           }
         }}
@@ -204,9 +211,10 @@ export function CommunityTools(): ReactElement | null {
           <Button
             size="sm"
             variant="ghost"
-            icon={<IconEllipsisOutline16 />}
+            icon={leaving ? <Spinner size={14} /> : <IconEllipsisOutline16 />}
+            disabled={leaving}
             onClick={() => setMenuOpen((v) => !v)}
-            aria-label="社区管理"
+            aria-label={leaving ? "正在退出社区" : "社区管理"}
           />
         }
         items={menuItems}
@@ -328,6 +336,7 @@ function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void 
   const [privacy, setPrivacy] = useState<"public" | "private">(community?.privacy ?? "public");
   const [iconUrl, setIconUrl] = useState<string | null>(community?.iconUrl ?? null);
   const [busy, setBusy] = useState(false);
+  const [iconBusy, setIconBusy] = useState(false);
 
   // 每次打开用当前社区资料预填
   useEffect(() => {
@@ -339,7 +348,9 @@ function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void 
   }, [open, community?.name, community?.description, community?.privacy, community?.iconUrl]);
 
   async function pickIcon(file: File): Promise<void> {
+    setIconBusy(true);
     const url = await uploadImage(file);
+    setIconBusy(false);
     if (url) setIconUrl(url);
   }
 
@@ -388,7 +399,7 @@ function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void 
             disabled={busy || name.trim().length === 0}
             onClick={() => void save()}
           >
-            保存
+            {busy ? "保存中…" : "保存"}
           </Button>
         </>
       }
@@ -404,7 +415,7 @@ function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void 
             onRemove={() => setIconUrl(null)}
             uploadLabel="设置头像"
             removeLabel="移除头像"
-            busy={busy}
+            busy={busy || iconBusy}
             kind="community"
           />
         </div>
@@ -464,7 +475,7 @@ function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void 
             </span>
             <Button
               variant="ghost"
-              icon={<IconTrashOutline16 />}
+              icon={busy ? <Spinner size={14} /> : <IconTrashOutline16 />}
               disabled={busy}
               onClick={() => void removeCommunity()}
               style={{
@@ -526,7 +537,7 @@ export function MemberRolesDialog({
             取消
           </Button>
           <Button variant="primary" disabled={busy} onClick={() => void save()}>
-            保存
+            {busy ? "保存中…" : "保存"}
           </Button>
         </>
       }
@@ -644,7 +655,7 @@ function ChannelDialog({
             disabled={busy || name.trim().length === 0}
             onClick={() => void save()}
           >
-            {isEdit ? "保存" : "创建"}
+            {busy ? (isEdit ? "保存中…" : "创建中…") : isEdit ? "保存" : "创建"}
           </Button>
         </>
       }
@@ -730,6 +741,8 @@ export function ChannelRowMenu({
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [overwriting, setOverwriting] = useState(false);
+  // 删除 / 排序请求进行中（禁用菜单入口并转圈）
+  const [busy, setBusy] = useState(false);
   // 权限覆盖读写走社区级 MANAGE_CHANNEL（避免频道级 deny 自锁）；
   // 频道改名/删除/排序走该频道解析后的 MANAGE_CHANNEL 位
   const canOverwrite = isModerator();
@@ -751,8 +764,18 @@ export function ChannelRowMenu({
       danger: true,
     });
     if (!confirmed) return;
+    setBusy(true);
     const ok = await deleteChannelById(channel.id);
+    setBusy(false);
     if (ok) setMenuOpen(false);
+  }
+
+  /** 频道上移 / 下移：服务端按整表重排 */
+  async function move(dir: "up" | "down"): Promise<void> {
+    if (busy) return;
+    setBusy(true);
+    await moveChannel(channel.id, dir);
+    setBusy(false);
   }
 
   const items: MenuEntry[] = [
@@ -812,19 +835,20 @@ export function ChannelRowMenu({
           if (id === "overwrites") setOverwriting(true);
           if (id === "edit") setEditing(true);
           if (id === "delete") void remove();
-          if (id === "up") void moveChannel(channel.id, "up");
-          if (id === "down") void moveChannel(channel.id, "down");
+          if (id === "up") void move("up");
+          if (id === "down") void move("down");
         }}
         anchor={
           <Button
             size="sm"
             variant="ghost"
-            icon={<IconEllipsisOutline16 />}
+            icon={busy ? <Spinner size={14} /> : <IconEllipsisOutline16 />}
+            disabled={busy}
             onClick={(e) => {
               e.stopPropagation();
               setMenuOpen((v) => !v);
             }}
-            aria-label={`管理 #${channel.name}`}
+            aria-label={busy ? `正在处理 #${channel.name}` : `管理 #${channel.name}`}
           />
         }
         items={items}
@@ -845,6 +869,8 @@ function RolesDialog({ open, onClose }: { open: boolean; onClose: () => void }):
   const talk = useTalkState();
   const roles = talk.view.community?.roles ?? [];
   const [editing, setEditing] = useState<CommunityRole | "new" | null>(null);
+  // 正在删除 / 调整层级的角色 id（禁用该行操作并转圈）
+  const [busyRoleId, setBusyRoleId] = useState<ID | null>(null);
 
   const custom = roles.filter((r) => !r.isEveryone).sort((a, b) => b.position - a.position);
   const everyone = roles.find((r) => r.isEveryone) ?? null;
@@ -857,18 +883,23 @@ function RolesDialog({ open, onClose }: { open: boolean; onClose: () => void }):
       danger: true,
     });
     if (!confirmed) return;
+    setBusyRoleId(role.id);
     await deleteRole(role.id);
+    setBusyRoleId(null);
   }
 
   /** 与相邻自定义角色交换层级（服务端按整表重排，含层级校验） */
   async function move(role: CommunityRole, dir: "up" | "down"): Promise<void> {
+    if (busyRoleId !== null) return;
     const index = custom.findIndex((r) => r.id === role.id);
     const other = custom[dir === "up" ? index - 1 : index + 1];
     if (index < 0 || other === undefined) return;
     const next = [...custom];
     next[index] = other;
     next[dir === "up" ? index - 1 : index + 1] = role;
+    setBusyRoleId(role.id);
     await reorderRoles(next.map((r) => r.id));
+    setBusyRoleId(null);
   }
 
   return (
@@ -925,7 +956,7 @@ function RolesDialog({ open, onClose }: { open: boolean; onClose: () => void }):
                 <Button
                   size="sm"
                   variant="ghost"
-                  disabled={i === 0 || !canManageRolePosition(role.position)}
+                  disabled={busyRoleId !== null || i === 0 || !canManageRolePosition(role.position)}
                   onClick={() => void move(role, "up")}
                   aria-label={`${role.name} 上移`}
                 >
@@ -945,7 +976,11 @@ function RolesDialog({ open, onClose }: { open: boolean; onClose: () => void }):
                 <Button
                   size="sm"
                   variant="ghost"
-                  disabled={i === custom.length - 1 || !canManageRolePosition(role.position)}
+                  disabled={
+                    busyRoleId !== null ||
+                    i === custom.length - 1 ||
+                    !canManageRolePosition(role.position)
+                  }
                   onClick={() => void move(role, "down")}
                   aria-label={`${role.name} 下移`}
                 >
@@ -956,7 +991,7 @@ function RolesDialog({ open, onClose }: { open: boolean; onClose: () => void }):
             <Button
               size="sm"
               variant="ghost"
-              disabled={!canManageRolePosition(role.position)}
+              disabled={busyRoleId !== null || !canManageRolePosition(role.position)}
               onClick={() => setEditing(role)}
             >
               编辑
@@ -973,8 +1008,8 @@ function RolesDialog({ open, onClose }: { open: boolean; onClose: () => void }):
                 <Button
                   size="sm"
                   variant="ghost"
-                  disabled={!canManageRolePosition(role.position)}
-                  icon={<IconTrashOutline16 />}
+                  disabled={busyRoleId !== null || !canManageRolePosition(role.position)}
+                  icon={busyRoleId === role.id ? <Spinner size={14} /> : <IconTrashOutline16 />}
                   onClick={() => void remove(role)}
                   aria-label={`删除角色 ${role.name}`}
                 />
@@ -1079,7 +1114,7 @@ function RoleEditorDialog({
             disabled={busy || (!everyone && name.trim().length === 0)}
             onClick={() => void save()}
           >
-            {isEdit ? "保存" : "创建"}
+            {busy ? (isEdit ? "保存中…" : "创建中…") : isEdit ? "保存" : "创建"}
           </Button>
         </>
       }
@@ -1211,6 +1246,8 @@ function ChannelOverwriteDialog({
   const [allow, setAllow] = useState<PermissionFlags>(0);
   const [deny, setDeny] = useState<PermissionFlags>(0);
   const [busy, setBusy] = useState(false);
+  // 正在提交的动作：区分保存 / 清除，按钮据此显示对应加载文案
+  const [action, setAction] = useState<"save" | "clear" | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -1261,8 +1298,10 @@ function ChannelOverwriteDialog({
 
   async function save(): Promise<void> {
     setBusy(true);
+    setAction("save");
     const ok = await setChannelOverwrite(channel.id, selected.type, selected.id, { allow, deny });
     setBusy(false);
+    setAction(null);
     if (ok) {
       notify("权限覆盖已保存");
       await refresh();
@@ -1272,8 +1311,10 @@ function ChannelOverwriteDialog({
   async function clear(): Promise<void> {
     if (!current) return;
     setBusy(true);
+    setAction("clear");
     const ok = await deleteChannelOverwrite(channel.id, selected.type, selected.id);
     setBusy(false);
+    setAction(null);
     if (ok) {
       notify("已清除该目标的覆盖");
       await refresh();
@@ -1290,16 +1331,16 @@ function ChannelOverwriteDialog({
       footer={
         <>
           <Button variant="ghost" disabled={busy || !current} onClick={() => void clear()}>
-            清除覆盖
+            {action === "clear" ? "清除中…" : "清除覆盖"}
           </Button>
           <Button variant="primary" disabled={busy} onClick={() => void save()}>
-            保存
+            {action === "save" ? "保存中…" : "保存"}
           </Button>
         </>
       }
     >
       {loading ? (
-        <div style={{ ...smallText, padding: "12px 4px" }}>加载权限覆盖…</div>
+        <LoadingHint text="加载权限覆盖…" padding="12px 4px" />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={fieldBlock}>

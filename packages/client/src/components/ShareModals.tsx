@@ -20,7 +20,7 @@ import {
   shareLocalSession,
 } from "../store";
 import { formatBytes } from "./homeStyles";
-import { palette, pillStyle, smallText, timeLabel } from "./styles";
+import { LoadingHint, palette, pillStyle, smallText, timeLabel } from "./styles";
 import { TalkModal as Modal } from "./TalkModal";
 
 /** 会话行尾状态提示：交互阻断 > 运行中 > 已完成（对齐宿主左侧会话栏口径） */
@@ -59,9 +59,12 @@ export function ShareSnapshotModal({
   // DSH 会话分享：整棵会话树（工作区 → 会话，与宿主左侧会话栏同源）+ 选中的会话
   const [tree, setTree] = useState<ShareSessionTree>({ groups: [], current: null });
   const [sessionId, setSessionId] = useState("");
+  // 本机会话树拉取中（host 打包/读取偏慢）
+  const [loadingTree, setLoadingTree] = useState(false);
 
   useEffect(() => {
     if (!open) return;
+    setLoadingTree(true);
     void listShareableSessions().then((res) => {
       setTree(res);
       const initial =
@@ -69,6 +72,7 @@ export function ShareSnapshotModal({
       setSessionId(initial);
       // 分享标题默认取所选会话的展示名，用户仍可改写
       setTitle(sessionTitleOf(res, initial));
+      setLoadingTree(false);
     });
   }, [open]);
 
@@ -129,7 +133,9 @@ export function ShareSnapshotModal({
               overflowY: "auto",
             }}
           >
-            {sessionGroups.length === 0 ? (
+            {loadingTree ? (
+              <LoadingHint text="正在读取本机会话…" />
+            ) : sessionGroups.length === 0 ? (
               <div style={{ ...smallText, fontSize: 14 }}>没有可分享的本机会话。</div>
             ) : (
               sessionGroups.map((group) => (
@@ -291,6 +297,8 @@ function ShareCardModal({
   const [detail, setDetail] = useState<GetShareResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
+  // 正在提交的动作：区分下载 / 克隆，按钮据此显示对应加载文案
+  const [action, setAction] = useState<"download" | "clone" | null>(null);
 
   // 打开时拉一次详情（分享者 / 时间 / 大小 / 会话事件数）
   useEffect(() => {
@@ -311,16 +319,20 @@ function ShareCardModal({
   async function download(): Promise<void> {
     if (busy) return;
     setBusy(true);
+    setAction("download");
     const url = await shareDownloadUrl(card.shareId);
     setBusy(false);
+    setAction(null);
     if (url) window.open(url, "_blank", "noopener");
   }
 
   async function clone(): Promise<void> {
     if (busy) return;
     setBusy(true);
+    setAction("clone");
     const ok = await cloneShareToSession(card.shareId);
     setBusy(false);
+    setAction(null);
     if (ok) onClose();
   }
 
@@ -336,10 +348,10 @@ function ShareCardModal({
       footer={
         <>
           <Button variant="ghost" disabled={busy} onClick={() => void download()}>
-            下载包体
+            {action === "download" ? "获取中…" : "下载包体"}
           </Button>
           <Button variant="primary" disabled={busy || loading} onClick={() => void clone()}>
-            {busy ? "处理中…" : "克隆到本地的会话"}
+            {action === "clone" ? "处理中…" : "克隆到本地的会话"}
           </Button>
         </>
       }
@@ -351,7 +363,7 @@ function ShareCardModal({
         </div>
         {card.summary ? <div style={{ ...smallText, fontSize: 14 }}>{card.summary}</div> : null}
         {loading ? (
-          <div style={{ ...smallText, fontSize: 14 }}>加载分享信息…</div>
+          <LoadingHint text="加载分享信息…" padding="10px 2px" />
         ) : detail ? (
           <div style={{ ...smallText, fontSize: 14, lineHeight: 1.9 }}>
             <div>分享者：@{detail.author.handle}</div>

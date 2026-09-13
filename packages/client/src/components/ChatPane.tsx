@@ -49,6 +49,8 @@ import { ForumTopicBoard } from "./ForumTopicBoard";
 import {
   chatCol,
   composerBox,
+  composerToolbar,
+  composerToolbarGap,
   composerWrap,
   creatorRow,
   emptyMsg,
@@ -64,7 +66,7 @@ import { MemberPanel } from "./MemberPanel";
 import { MessageRow, PinGlyph, ReplyGlyph } from "./MessageRow";
 import { SearchMessagesModal } from "./SearchModals";
 import { ShareSnapshotModal } from "./ShareModals";
-import { Avatar, palette, shadow, smallText, timeLabel } from "./styles";
+import { Avatar, palette, shadow, smallText, Spinner, timeLabel } from "./styles";
 import { TalkModal } from "./TalkModal";
 import { ThreadMembersModal, ThreadSettingsModal } from "./ThreadModals";
 
@@ -89,6 +91,7 @@ function PinnedMessagesModal({
 }): ReactElement {
   const talk = useTalkState();
   const [items, setItems] = useState<MessageItem[] | null>(null);
+  const [unpinningId, setUnpinningId] = useState<string | null>(null);
 
   // 每次打开重拉（置顶可能已被别人改动）
   useEffect(() => {
@@ -102,6 +105,14 @@ function PinnedMessagesModal({
       alive = false;
     };
   }, [open]);
+
+  async function unpin(item: MessageItem): Promise<void> {
+    if (unpinningId !== null) return;
+    setUnpinningId(item.id);
+    await setMessagePinned(item, false);
+    setUnpinningId(null);
+    setItems((prev) => (prev ?? []).filter((x) => x.id !== item.id));
+  }
 
   async function jump(item: MessageItem): Promise<void> {
     onClose();
@@ -177,12 +188,9 @@ function PinnedMessagesModal({
                 <Button
                   size="sm"
                   variant="ghost"
-                  icon={<PinGlyph />}
-                  onClick={() => {
-                    void setMessagePinned(item, false).then(() =>
-                      setItems((prev) => (prev ?? []).filter((x) => x.id !== item.id)),
-                    );
-                  }}
+                  icon={unpinningId === item.id ? <Spinner size={14} /> : <PinGlyph />}
+                  disabled={unpinningId !== null}
+                  onClick={() => void unpin(item)}
                   aria-label="取消置顶"
                   title="取消置顶"
                 />
@@ -235,6 +243,8 @@ export function ChatPane({
   const [pinnedOpen, setPinnedOpen] = useState(false);
   // 拖拽文件到输入区时的高亮态
   const [dragging, setDragging] = useState(false);
+  // 归档 / 恢复讨论组请求进行中
+  const [threadBusy, setThreadBusy] = useState(false);
 
   const threadId = talk.view.threadId;
   const roomKey = threadId ?? channelId;
@@ -282,8 +292,10 @@ export function ChatPane({
 
   /** 归档 / 恢复当前讨论组 */
   async function toggleThreadArchive(): Promise<void> {
-    if (!currentThread) return;
+    if (!currentThread || threadBusy) return;
+    setThreadBusy(true);
     await setThreadArchived(currentThread.id, currentThread.status === "active");
+    setThreadBusy(false);
   }
 
   function onScroll(event: UIEvent<HTMLDivElement>): void {
@@ -621,6 +633,8 @@ export function ChatPane({
             <Button
               size="sm"
               variant="ghost"
+              icon={threadBusy ? <Spinner size={14} /> : undefined}
+              disabled={threadBusy}
               onClick={() => void toggleThreadArchive()}
               aria-label={currentThread?.status === "active" ? "归档" : "恢复"}
               title={
@@ -633,7 +647,7 @@ export function ChatPane({
                     : "把讨论组恢复为活跃"
               }
             >
-              {currentThread?.status === "active" ? "归档" : "恢复"}
+              {threadBusy ? "处理中…" : currentThread?.status === "active" ? "归档" : "恢复"}
             </Button>
           ) : null}
           {!isThread && canCreateThread ? (
@@ -803,46 +817,14 @@ export function ChatPane({
                       {typingLabel(talk.view.typing)}
                     </div>
                   ) : null}
-                  {/* 输入整体外框：左侧操作区与输入框合并在一起 */}
+                  {/* 输入整体外框：输入框在上，操作条（分享 / 表情 / 附件 + 发送）在下 */}
                   <div style={composerBox}>
-                    {/* 分享 DSH 会话：仅主频道（讨论组/话题内不分享） */}
-                    {!isThread ? (
-                      <Button
-                        size="md"
-                        variant="ghost"
-                        icon={<IconShareOutline16 />}
-                        onClick={() => setShareOpen(true)}
-                        disabled={talk.view.sending}
-                        aria-label="分享"
-                        title="把本机 DSH 会话分享到社区"
-                      />
-                    ) : null}
-                    <EmojiPopover
-                      open={emojiOpen}
-                      onOpenChange={(next) => {
-                        setEmojiOpen(next);
-                        // 表情面板与 @ 补全弹层都贴在输入框上方，同时展开会互相遮挡
-                        if (next) setMentionActive(false);
-                      }}
-                      onPick={insertEmoji}
-                      disabled={talk.view.sending}
-                    />
-                    <Button
-                      size="md"
-                      variant="ghost"
-                      icon={<IconPaperclipOutline16 />}
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={talk.view.sending}
-                      aria-label="添加附件"
-                      title="添加附件"
-                    />
                     <div
                       style={{
-                        flex: 1,
+                        minWidth: 0,
                         display: "flex",
                         flexDirection: "column",
                         gap: 6,
-                        minWidth: 0,
                       }}
                     >
                       {replyingPreview ? (
@@ -1010,6 +992,53 @@ export function ChatPane({
                         style={textArea}
                       />
                     </div>
+                    {/* 操作条：分享 / 表情 / 附件在左，发送在右 */}
+                    <div style={composerToolbar}>
+                      {!isThread ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          icon={<IconShareOutline16 />}
+                          onClick={() => setShareOpen(true)}
+                          disabled={talk.view.sending}
+                          aria-label="分享"
+                          title="把本机 DSH 会话分享到社区"
+                        />
+                      ) : null}
+                      <EmojiPopover
+                        open={emojiOpen}
+                        size="sm"
+                        onOpenChange={(next) => {
+                          setEmojiOpen(next);
+                          // 表情面板与 @ 补全弹层都贴在输入框上方，同时展开会互相遮挡
+                          if (next) setMentionActive(false);
+                        }}
+                        onPick={insertEmoji}
+                        disabled={talk.view.sending}
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon={<IconPaperclipOutline16 />}
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={talk.view.sending}
+                        aria-label="添加附件"
+                        title="添加附件"
+                      />
+                      <div style={composerToolbarGap} />
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        icon={talk.view.sending ? <Spinner size={14} /> : <IconSendOutline16 />}
+                        disabled={
+                          talk.view.sending ||
+                          (composerText.trim().length === 0 && pendingFiles.length === 0)
+                        }
+                        onClick={() => void submit()}
+                        aria-label={talk.view.sending ? "发送中" : "发送"}
+                        title={talk.view.sending ? "发送中…" : "发送"}
+                      />
+                    </div>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -1020,24 +1049,13 @@ export function ChatPane({
                       tabIndex={-1}
                     />
                   </div>
-                  <Button
-                    variant="primary"
-                    size="md"
-                    icon={<IconSendOutline16 />}
-                    disabled={
-                      talk.view.sending ||
-                      (composerText.trim().length === 0 && pendingFiles.length === 0)
-                    }
-                    onClick={() => void submit()}
-                    aria-label="发送"
-                  />
                 </>
               ) : (
                 <span
                   style={{
                     ...smallText,
                     fontSize: 14,
-                    flex: 1,
+                    width: "100%",
                     textAlign: "center",
                     padding: "10px 0",
                   }}
