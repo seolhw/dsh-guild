@@ -260,8 +260,9 @@ channelMessagesApi.post("/:id/messages", async (c) => {
       height: typeof a.height === "number" ? a.height : null,
     });
   }
-  if (content.length === 0 && attachments.length === 0)
-    throw HttpApiError.badRequest("content 不能为空（纯附件消息也请附上文件）");
+  // 正文可为空：附件或分享卡片至少要有一样（分享卡片是「卡片即消息」的分享形式）
+  if (content.length === 0 && attachments.length === 0 && !body.shareId)
+    throw HttpApiError.badRequest("content 不能为空（附件或分享卡片至少要有一样）");
 
   // mentions：@handle -> userId
   const mentions: string[] = [];

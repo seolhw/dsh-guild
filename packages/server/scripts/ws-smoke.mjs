@@ -451,16 +451,16 @@ assert(
 const shareId = share.json.share.id;
 const view = await call("GET", `/api/shares/${shareId}`, undefined, tokenB);
 assert(view.status === 200 && typeof view.json.downloadUrl === "string", "社区成员可查看分享");
-// 删除分享 = 撤回卡片消息：发一条带分享卡片的消息，撤回它，分享随之消失
+// 删除分享 = 撤回卡片消息：发一条「卡片即消息」的消息（正文为空，只有卡片），撤回它，分享随之消失
 const cardMsg = await call(
   "POST",
   `/api/channels/${channelId}/messages`,
-  { content: "分享卡片消息", shareId },
+  { content: "", shareId },
   tokenA,
 );
 assert(
   cardMsg.status === 201 && cardMsg.json?.shareCard?.shareId === shareId,
-  "A 发送带分享卡片的消息",
+  "A 发送纯分享卡片消息（正文为空）",
 );
 const delCard = await call("DELETE", `/api/messages/${cardMsg.json.id}`, undefined, tokenA);
 assert(delCard.status === 200, "A 撤回卡片消息");
