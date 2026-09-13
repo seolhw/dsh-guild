@@ -153,6 +153,27 @@ export function AttachmentList({
 
 // ---------------- 表情回应（reaction） ----------------
 
+/** hover 操作条里的快捷回应：不展开表情面板，单击即切换 */
+const QUICK_REACTIONS = ["👍", "❤️", "😂", "🎉"];
+
+/** 快捷回应按钮：我投过的用品牌色淡底高亮 */
+function quickReactionStyle(mine: boolean): CSSProperties {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    height: 24,
+    minWidth: 24,
+    padding: "0 3px",
+    fontSize: 15,
+    lineHeight: 1,
+    cursor: "pointer",
+    borderRadius: 6,
+    border: "none",
+    background: mine ? palette.hoverAccent : "transparent",
+  };
+}
+
 /** 回应小胶囊：我投过的用品牌色描边高亮 */
 function reactionChipStyle(mine: boolean): CSSProperties {
   return {
@@ -400,6 +421,22 @@ export function MessageRow({
               label="添加表情回应"
               title="添加表情回应"
             />
+            {QUICK_REACTIONS.map((emoji) => {
+              const reacted = (item.reactions ?? []).some((r) => r.emoji === emoji && r.me);
+              return (
+                <button
+                  key={emoji}
+                  type="button"
+                  className="dsht-quick-react"
+                  onClick={() => void toggleReaction(item, emoji)}
+                  title={reacted ? `取消回应 ${emoji}` : `回应 ${emoji}`}
+                  aria-label={reacted ? `取消回应 ${emoji}` : `回应 ${emoji}`}
+                  style={quickReactionStyle(reacted)}
+                >
+                  {emoji}
+                </button>
+              );
+            })}
             {canReplyHere ? (
               <Button
                 size="sm"

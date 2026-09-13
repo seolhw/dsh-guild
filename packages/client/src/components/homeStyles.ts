@@ -196,6 +196,7 @@ export const messageRowCss = `
   .dsht-msg-row:hover .dsht-msg-actions,
   .dsht-msg-row:focus-within .dsht-msg-actions,
   .dsht-msg-actions.is-open { opacity: 1; pointer-events: auto; }
+  .dsht-quick-react:hover { background: ${palette.hover}; }
   .dsht-quote-btn { cursor: pointer; }
 `;
 
