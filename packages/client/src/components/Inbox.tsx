@@ -15,7 +15,7 @@ import {
   markAllNotificationsRead,
   useTalkState,
 } from "../store";
-import { Avatar, palette, smallText, Spinner, timeLabel } from "./styles";
+import { avatarGap, CommunityAvatar, palette, smallText, Spinner, timeLabel } from "./styles";
 import { TalkModal as Modal } from "./TalkModal";
 
 function BellGlyph({ size = 16 }: { size?: number }): ReactElement {
@@ -39,7 +39,7 @@ function BellGlyph({ size = 16 }: { size?: number }): ReactElement {
 
 const rowWrap: CSSProperties = {
   display: "flex",
-  gap: 10,
+  gap: avatarGap,
   alignItems: "flex-start",
   padding: "10px 12px",
   borderRadius: 12,
@@ -63,7 +63,7 @@ function InboxRow({ item }: { item: InboxItem }): ReactElement {
 
   return (
     <div style={rowWrap}>
-      <Avatar label={communityName || "邀"} src={icon} size={34} kind="community" />
+      <CommunityAvatar label={communityName || "邀"} src={icon} />
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
         <div
           style={{

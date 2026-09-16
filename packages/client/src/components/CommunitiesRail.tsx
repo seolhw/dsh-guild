@@ -19,7 +19,7 @@ import {
   railScroll,
 } from "./homeStyles";
 import { BellGlyph } from "./Inbox";
-import { Avatar, BrandLogo, palette, Spinner } from "./styles";
+import { Avatar, avatarGap, BrandLogo, CommunityAvatar, palette, Spinner } from "./styles";
 
 // ---------------- hover 卡片排版（社区栏统一） ----------------
 
@@ -79,15 +79,8 @@ function ProjectCard(): ReactElement {
 function CommunityMetaCard({ community }: { community: Community }): ReactElement {
   return (
     <div style={tipWrap}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <Avatar
-          color={palette.communityAvatarBg}
-          label={community.name}
-          src={community.iconUrl}
-          size={32}
-          inset={3}
-          kind="community"
-        />
+      <div style={{ display: "flex", alignItems: "center", gap: avatarGap }}>
+        <CommunityAvatar label={community.name} src={community.iconUrl} />
         <div style={{ minWidth: 0 }}>
           <div
             style={{
@@ -261,14 +254,7 @@ export function CommunitiesRail({
               {active ? <span style={railPill} /> : null}
               {withTip(
                 <span style={railAvatar}>
-                  <Avatar
-                    color={palette.communityAvatarBg}
-                    label={c.name}
-                    src={c.iconUrl}
-                    size={44}
-                    inset={4}
-                    kind="community"
-                  />
+                  <CommunityAvatar label={c.name} src={c.iconUrl} />
                   {active && talk.view.communityLoading ? (
                     <span
                       style={{

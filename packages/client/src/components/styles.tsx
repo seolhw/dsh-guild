@@ -376,11 +376,45 @@ export function Avatar({
   );
 }
 
+/**
+ * 社区头像统一规格（社区栏列表、社区栏 hover 卡、社区创建/设置弹窗共用）：
+ * 同一社区 logo 在三处必须同尺寸、同内缩、同圆底，避免视觉大小来回跳。
+ */
+export const COMMUNITY_AVATAR_SIZE = 44;
+
+/** 社区 logo 相对圆块的内缩（px）：四周露出的一圈圆底 */
+export const COMMUNITY_AVATAR_INSET = 4;
+
+/** 头像与其右侧内容的统一间距（社区 hover 卡、头像选择器、邀请行共用） */
+export const avatarGap = 8;
+
+/** 社区头像：固定 COMMUNITY_AVATAR_SIZE + COMMUNITY_AVATAR_INSET + 主题圆底 */
+export function CommunityAvatar({
+  label,
+  src,
+  size,
+}: {
+  label: string;
+  src?: string | null;
+  size?: number | undefined;
+}): ReactElement {
+  return (
+    <Avatar
+      color={palette.communityAvatarBg}
+      label={label}
+      src={src ?? null}
+      size={size ?? COMMUNITY_AVATAR_SIZE}
+      inset={COMMUNITY_AVATAR_INSET}
+      kind="community"
+    />
+  );
+}
+
 /** 头像/图标选择器：预览圆块 + 「修改/移除」按钮，选取后回调 onPick(File) */
 export function AvatarPicker({
   src,
   label,
-  size = 60,
+  size,
   onPick,
   onRemove,
   uploadLabel = "修改头像",
@@ -390,6 +424,7 @@ export function AvatarPicker({
 }: {
   src?: string | null;
   label: string;
+  /** 不传时：社区头像走 COMMUNITY_AVATAR_SIZE，用户头像 60 */
   size?: number;
   onPick?: (file: File) => void;
   onRemove?: () => void;
@@ -401,8 +436,12 @@ export function AvatarPicker({
 }): ReactElement {
   const inputRef = useRef<HTMLInputElement | null>(null);
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <Avatar label={label} src={src ?? null} size={size} kind={kind} />
+    <div style={{ display: "flex", alignItems: "center", gap: avatarGap }}>
+      {kind === "community" ? (
+        <CommunityAvatar label={label} src={src ?? null} size={size} />
+      ) : (
+        <Avatar label={label} src={src ?? null} size={size ?? 60} kind={kind} />
+      )}
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <div style={{ display: "flex", gap: 6 }}>
           <Button

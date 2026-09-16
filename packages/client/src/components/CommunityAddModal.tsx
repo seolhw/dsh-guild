@@ -15,8 +15,9 @@ import {
   useTalkState,
 } from "../store";
 import {
-  Avatar,
   AvatarPicker,
+  avatarGap,
+  CommunityAvatar,
   fieldBlock,
   fieldLabel,
   LoadingHint,
@@ -32,7 +33,7 @@ import { TalkModal as Modal } from "./TalkModal";
 const discoverRow: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: 8,
+  gap: avatarGap,
   padding: "7px 10px",
   borderRadius: 10,
   background: palette.inputBg,
@@ -258,7 +259,6 @@ export function CommunityAddModal({
               <AvatarPicker
                 src={iconUrl}
                 label={name.trim() || "社区"}
-                size={60}
                 onPick={(file) => void pickIcon(file)}
                 onRemove={() => setIconUrl(null)}
                 uploadLabel="设置头像"
@@ -371,7 +371,7 @@ export function CommunityAddModal({
                       : activityLabel(item);
                   return (
                     <div key={item.id} style={discoverRow}>
-                      <Avatar label={item.name} src={item.iconUrl} kind="community" />
+                      <CommunityAvatar label={item.name} src={item.iconUrl} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={discoverName}>
                           {item.name}

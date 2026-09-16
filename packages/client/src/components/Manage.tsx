@@ -410,7 +410,6 @@ function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void 
           <AvatarPicker
             src={iconUrl}
             label={name.trim() || "社区"}
-            size={60}
             onPick={(file) => void pickIcon(file)}
             onRemove={() => setIconUrl(null)}
             uploadLabel="设置头像"
