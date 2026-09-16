@@ -59,17 +59,34 @@ const PAGE_HOST_CSS = `
 `;
 
 /**
+ * 本插件 hover 说明卡的主题适配：宿主 HoverCard 把卡片底色写死成 #2C2C2E
+ * （明暗一致，figma 取值），卡内文字才是跟随主题的——亮色下就成了"深底 + 深字"
+ * 的黑块。这里把卡片表面改回跟随主题（palette.hoverCardBg：亮色白卡 / 暗色深卡）。
+ * 宿主类名是构建期哈希，只能用结构选择器：卡片本身就是 body 下的 portal 根节点；
+ * 标记属性 data-dsht-hover-tip 由本插件的卡片内容声明（CommunitiesRail 的
+ * RailTip、Manage 的 ActionTip），因此只覆盖本插件的卡片，不动 DSH 自己的。
+ */
+const HOVER_CARD_CSS = `
+body > div:has(> [data-dsht-hover-tip]) {
+  --dsw-hovercard-bg: ${palette.hoverCardBg};
+}
+`;
+
+/**
  * 暗色主题下的插件内覆盖层（宿主主题由 `body[data-ds-dark-theme]` 切换）：
  *  - 灰度文字提亮：宿主 token 在深色底上偏暗，小字难以辨认，这里只覆盖本插件
  *    自己的 --dsht-label-* 变量层（palette.muted 引用它），不动宿主 token，
  *    因此不会影响 DSH 其他界面。插件只保留一档辅助灰，暗色下提亮到 bluish-300。
  *  - 社区 logo 圆底：亮色是白底（palette.communityAvatarBg 的 var 兜底值），
  *    暗色换成黑底，避免深色界面里一圈刺眼的白。
+ *  - 分段选择组激活键底色：亮色兜底用纯白表面（bg-layer-1）以拉开与轨道的差距，
+ *    暗色下 bg-layer-1 反而比轨道暗，故这里覆盖回 bg-overlay 维持原来的浮起观感。
  */
 const DARK_THEME_CSS = `
 body[data-ds-dark-theme] {
   --dsht-label-tertiary: var(--dsw-static-neutral-bluish-300);
   --dsht-community-avatar-bg: #000000;
+  --dsht-pill-active-bg: var(--dsw-alias-bg-overlay);
 }
 `;
 
@@ -80,7 +97,7 @@ function ensureHostCss(): void {
   if (hostCssInjected) return;
   const style = document.createElement("style");
   style.setAttribute("data-dsht-page-css", "");
-  style.textContent = `${PAGE_HOST_CSS}${DARK_THEME_CSS}`;
+  style.textContent = `${PAGE_HOST_CSS}${HOVER_CARD_CSS}${DARK_THEME_CSS}`;
   document.head.appendChild(style);
   hostCssInjected = true;
 }

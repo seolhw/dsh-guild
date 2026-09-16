@@ -17,6 +17,13 @@ export const palette = {
   layer2: "var(--dsw-alias-bg-layer-2)",
   rail: "var(--dsw-specific-sidebar-fill)",
   elevated: "var(--dsw-alias-bg-overlay)",
+  /**
+   * 浮层说明卡（宿主 HoverCard）的表面：宿主把卡片底色写死成 #2C2C2E（明暗一致），
+   * 本插件改为跟随主题。取 bg-layer-2：亮色是白卡，暗色是 bluish-850（恰好等于
+   * 宿主原来的 #2C2C2E），即"亮色配亮卡、暗色配深卡"。覆盖点见 components.tsx
+   * 的 HOVER_CARD_CSS。
+   */
+  hoverCardBg: "var(--dsw-alias-bg-layer-2)",
   // 边框
   border: "var(--dsw-alias-border-l1)",
   // 文字：只有正文与辅助两档。所有说明、提示、时间戳、占位统一用 muted，
@@ -34,6 +41,14 @@ export const palette = {
   // 交互
   inputBg: "var(--dsw-alias-interactive-bg-hover-solid)",
   hover: "var(--dsw-alias-interactive-bg-hover)",
+  /**
+   * 分段选择组（pillGroup）激活键的底色：轨道用的 inputBg 亮色下是 bluish-75，
+   * 若激活键只叠 bg-overlay（bluish-150）就只差一档，选中的那格几乎看不出来；
+   * 亮色改用纯白表面（bg-layer-1），与宿主自己的「选中分段」对比度一致。
+   * 暗色下 bg-layer-1 比轨道更暗，会变成凹陷观感，故暗色由 components.tsx 的
+   * DARK_THEME_CSS 把 --dsht-pill-active-bg 覆盖回 bg-overlay。
+   */
+  pillActiveBg: "var(--dsht-pill-active-bg, var(--dsw-alias-bg-layer-1))",
   // 徽标：提及用品牌色，普通未读用文字弱化层
   badge: "var(--dsw-alias-state-error-primary)",
   hoverAccent: "var(--dsw-alias-interactive-bg-hover-accent)",
@@ -119,7 +134,7 @@ export function pillStyle(active: boolean): CSSProperties {
     ...pillKey,
     fontWeight: 600,
     color: palette.text,
-    background: palette.elevated,
+    background: palette.pillActiveBg,
     boxShadow: shadow.soft,
   };
 }

@@ -38,7 +38,7 @@ const tipHint: CSSProperties = { fontSize: 14, lineHeight: 1.5, color: palette.m
 /** 窄列图标的 hover 说明卡：标题 + 可选副标题 */
 function RailTip({ title, hint }: { title: string; hint?: string }): ReactElement {
   return (
-    <div style={tipWrap}>
+    <div data-dsht-hover-tip style={tipWrap}>
       <span style={tipTitle}>{title}</span>
       {hint ? <span style={tipHint}>{hint}</span> : null}
     </div>
@@ -51,7 +51,7 @@ const PROJECT_REPO = "https://github.com/seolhw/dsh-talk";
 /** 左上角 logo hover 小窗：项目介绍 + 仓库地址（可点开新标签） */
 function ProjectCard(): ReactElement {
   return (
-    <div style={{ ...tipWrap, maxWidth: 280, gap: 4 }}>
+    <div style={{ ...tipWrap, maxWidth: 280, gap: 4 }} data-dsht-hover-tip>
       <span style={tipTitle}>DSH-Talk</span>
       <span style={{...tipHint, textAlign: "justify"}}>
         把「社区」装进 DSH：在 DeepSeek Harness 里和同好聊天、提问求助、发通知。
@@ -78,7 +78,7 @@ function ProjectCard(): ReactElement {
 /** 社区栏 hover 小窗：名称、可见性、描述、成员总数（只读，点击仍选社区） */
 function CommunityMetaCard({ community }: { community: Community }): ReactElement {
   return (
-    <div style={tipWrap}>
+    <div style={tipWrap} data-dsht-hover-tip>
       <div style={{ display: "flex", alignItems: "center", gap: avatarGap }}>
         <CommunityAvatar label={community.name} src={community.iconUrl} />
         <div style={{ minWidth: 0 }}>
@@ -141,7 +141,7 @@ function UserMetaCard({
   avatarUrl: string | null;
 }): ReactElement {
   return (
-    <div style={tipWrap}>
+    <div style={tipWrap} data-dsht-hover-tip>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <Avatar label={handle} src={avatarUrl} size={32} />
         <div style={{ minWidth: 0 }}>
