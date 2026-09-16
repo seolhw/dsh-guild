@@ -157,11 +157,11 @@ const tokenA = await signup("chalice");
 const tokenB = await signup("chbob");
 const comm = await call("POST", "/api/communities", { name: "Channel DO Test", privacy: "public" }, tokenA);
 assert(comm.status === 201, "A 建社区");
-// 建社区时预置「管理员」角色：只带 ADMINISTRATOR 位（1 << 11），无需手动创建
+// 建社区时预置「管理员」角色：普通角色，权限位 = 当时全部权限（bit0..bit10 = 2047）
 const rolesRes = await call("GET", `/api/communities/${comm.json.id}/roles`, undefined, tokenA);
 const adminRole = rolesRes.json?.items?.find((r) => r.name === "管理员");
 assert(adminRole !== undefined, "建社区时预置「管理员」角色");
-assert(adminRole?.permissions === 1 << 11, "预置管理员角色只带 ADMINISTRATOR 位");
+assert(adminRole?.permissions === (1 << 11) - 1, "预置管理员角色拥有全部权限位");
 assert(adminRole?.isEveryone === false, "预置管理员角色不是 @everyone");
 const channelId = comm.json.channels.find((ch) => ch.name === "全员").id;
 await call("POST", `/api/communities/${comm.json.id}/join`, {}, tokenB);
@@ -497,7 +497,7 @@ const ownerAnnounce = await call(
 );
 assert(ownerAnnounce.status === 201, "owner 发公告成功");
 
-// 把预置的「管理员」角色分配给 B -> ADMINISTRATOR 绕过 @everyone 的覆盖，B 也能发公告
+// 把预置的「管理员」角色分配给 B：它只是普通角色，公告频道对 @everyone 的 deny 一样生效
 const memberList = await call("GET", `/api/communities/${comm.json.id}/members`, undefined, tokenA);
 const bob = memberList.json?.items?.find((m) => m.user.handle.startsWith("chbob"));
 assert(bob !== undefined, "成员列表里能找到 B");
@@ -518,7 +518,23 @@ const adminAnnounce = await call(
   { content: "admin announcement" },
   tokenB,
 );
-assert(adminAnnounce.status === 201, "管理员 B 绕过 @everyone 覆盖、发公告成功");
+assert(adminAnnounce.status === 403, "管理员角色不绕过频道覆盖，B 发公告仍被拒（403）");
+
+// 要让人发公告就在频道里显式授权：给该角色 allow SEND_MESSAGES 后 B 即可发布
+const grantAnnounce = await call(
+  "PUT",
+  `/api/channels/${annId}/overwrites/role/${adminRole.id}`,
+  { allow: 1 << 1, deny: 0 },
+  tokenA,
+);
+assert(grantAnnounce.status === 200, "A 给「管理员」角色在公告频道放行「发送消息」");
+const grantedAnnounce = await call(
+  "POST",
+  `/api/channels/${annId}/messages`,
+  { content: "authorized announcement" },
+  tokenB,
+);
+assert(grantedAnnounce.status === 201, "被单独授权后 B 发公告成功");
 
 // —— 权限：只有 owner 能删除社区（级联清频道/消息/成员） ——
 const delByMember = await call("DELETE", `/api/communities/${comm.json.id}`, undefined, tokenB);

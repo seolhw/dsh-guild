@@ -32,6 +32,7 @@ import type {
   UpdateUserRequest,
 } from "@dsh-talk/types/api";
 import {
+  ALL_PERMISSIONS,
   type ChannelOverwrite,
   type CommunityRole,
   DEFAULT_ADMIN_ROLE_NAME,
@@ -1155,25 +1156,18 @@ export async function listMembers(): Promise<ListMembersResponse["items"]> {
   }
 }
 
-/** 当前社区里带 ADMINISTRATOR 位的自定义角色（层级从高到低） */
-export function adminRoles(): CommunityRole[] {
-  return (state.view.community?.roles ?? [])
-    .filter((r) => !r.isEveryone && (r.permissions & Permission.ADMINISTRATOR) !== 0)
-    .sort((a, b) => b.position - a.position);
-}
-
-/**
- * 「设为管理员」会分配的角色：优先预置名「管理员」，其次层级最高的那个；
- * 社区里还没有任何带 ADMINISTRATOR 位的角色时返回 null（由 ensureAdminRole 新建）。
- */
+/** 当前社区预置的「管理员」角色（按预置名查找；被改名或删除时返回 null） */
 export function adminRole(): CommunityRole | null {
-  const admins = adminRoles();
-  return admins.find((r) => r.name === DEFAULT_ADMIN_ROLE_NAME) ?? admins[0] ?? null;
+  return (
+    (state.view.community?.roles ?? []).find(
+      (r) => !r.isEveryone && r.name === DEFAULT_ADMIN_ROLE_NAME,
+    ) ?? null
+  );
 }
 
 /**
- * 取当前社区「管理员」角色 id；社区里没有带 ADMINISTRATOR 位的角色时，
- * 按预置规格（名称 + 仅 ADMINISTRATOR 位）新建一个。仅供「设为管理员」快捷入口使用，
+ * 取当前社区「管理员」角色 id；社区里没有（被改名/删除）就按预置规格
+ * （预置名 + 全部权限位）新建一个普通角色。仅供「设为管理员」快捷入口使用，
  * 权限与层级仍由服务端裁决。
  */
 export async function ensureAdminRole(): Promise<ID | null> {
@@ -1185,7 +1179,7 @@ export async function ensureAdminRole(): Promise<ID | null> {
   try {
     await server.createRole(communityId, {
       name: DEFAULT_ADMIN_ROLE_NAME,
-      permissions: Permission.ADMINISTRATOR,
+      permissions: ALL_PERMISSIONS,
     });
     notify(`已创建「${DEFAULT_ADMIN_ROLE_NAME}」角色`);
     await reloadCommunityDetail();

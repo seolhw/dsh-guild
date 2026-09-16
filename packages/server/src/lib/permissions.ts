@@ -4,16 +4,15 @@
 // 模型：
 //   - communities.ownerId 为 owner，恒定拥有全部权限（绕过一切判定，但转让/删社区之外仍需 owner）
 //   - 每个社区必有且仅有一个 @everyone 角色（isEveryone，隐式作用于全体成员，position 恒 0）
-//   - 建社区时预置一个「管理员」角色（仅 ADMINISTRATOR 位）：只是**预设**而非内置，
-//     可改名/可删除，也不会自动分配给任何人，需要 owner 手动分配
+//   - 建社区时预置一个「管理员」角色：就是个**普通角色**，权限按 ALL_PERMISSIONS 初始化，
+//     可改名/可删/可任意增删权限位，也不会自动分配给任何人，需要 owner 手动分配
 //   - 成员可持有多个自定义角色（member_roles），基础权限 = 各角色 permissions 的并集
 //   - 角色带唯一 position（越大越靠上）；只能操作层级**严格低于**自己的角色/成员，
 //     也不能授予自己没有的权限位（见 assert* / planRoleReorder）
-//   - ADMINISTRATOR 展开为全量权限，并忽略频道覆盖
 //   - 频道维度用 channel_overwrites 对 @everyone / 角色 / 成员 叠加 allow/deny
 //
 // 解析顺序（与 Discord 一致）：
-//   1) owner / ADMINISTRATOR => ALL_PERMISSIONS（忽略覆盖）
+//   1) owner => ALL_PERMISSIONS（忽略覆盖）
 //   2) 非成员 => 0（社区频道一律不可见）
 //   3) 基础权限 base = union(全部持有角色.permissions，含 @everyone)
 //   4) @everyone 覆盖：base = (base & ~deny) | allow
@@ -96,9 +95,9 @@ export async function ensureEveryoneRole(
 }
 
 /**
- * 建社区时预置管理员角色：permissions 只给 ADMINISTRATOR 位（解析时展开为全量
- * 权限并忽略频道覆盖），position 固定 1（@everyone 恒 0）。
- * 它只是预设：可改名、可删除，也不会自动分配给任何人。
+ * 建社区时预置管理员角色：permissions 按当时全部权限位初始化（就是一次普通赋值，
+ * 后续新增的权限位不会自动补进来），position 固定 1（@everyone 恒 0）。
+ * 它只是预设：可改名、可删、可任意增删权限位，也不会自动分配给任何人。
  */
 export async function createDefaultAdminRole(
   db: Db,
@@ -111,7 +110,7 @@ export async function createDefaultAdminRole(
     name: DEFAULT_ADMIN_ROLE_NAME,
     color: null,
     position: 1,
-    permissions: Permission.ADMINISTRATOR,
+    permissions: ALL_PERMISSIONS,
     isEveryone: false,
     createdAt: now,
   };
@@ -152,10 +151,7 @@ export async function loadRoleIdsByMember(
 
 // ---------------- 权限计算 ----------------
 
-/**
- * 基础权限 = 各持有角色 permissions 的并集（含 @everyone）。
- * ADMINISTRATOR 直接展开为全量权限（等价 Discord 的「管理员」）。
- */
+/** 基础权限 = 各持有角色 permissions 的并集（含 @everyone） */
 export function computeBasePermissions(
   roles: readonly CommunityRoleRow[],
   roleIds: readonly string[],
@@ -165,7 +161,7 @@ export function computeBasePermissions(
   for (const role of roles) {
     if (role.isEveryone || held.has(role.id)) flags |= role.permissions;
   }
-  return (flags & Permission.ADMINISTRATOR) !== 0 ? ALL_PERMISSIONS : flags;
+  return flags;
 }
 
 /**
@@ -174,7 +170,7 @@ export function computeBasePermissions(
  *   2) 该成员持有的角色覆盖，**按角色层级从低到高**逐个整体覆盖
  *      （高位的 deny 能压过低位的 allow，反之亦然）
  *   3) 成员级覆盖（优先级最高）
- * 调用前保证调用方不是管理员（管理员忽略一切覆盖）。
+ * 调用前保证调用方不是 owner（owner 忽略一切覆盖）。
  */
 export function applyChannelOverwrites(
   base: PermissionFlags,
@@ -215,7 +211,7 @@ export function applyChannelOverwrites(
 
 /**
  * 某频道「我」的权限位。
- * owner 与 ADMINISTRATOR 拥有全量权限且忽略频道覆盖；非成员恒 0。
+ * owner 拥有全量权限且忽略频道覆盖；非成员恒 0。
  */
 export function computeChannelPermissions(opts: {
   basePermissions: PermissionFlags;
@@ -225,9 +221,7 @@ export function computeChannelPermissions(opts: {
   roleIds: readonly string[];
   overwrites: readonly ChannelOverwriteRow[];
 }): PermissionFlags {
-  if (opts.isOwner || (opts.basePermissions & Permission.ADMINISTRATOR) !== 0) {
-    return ALL_PERMISSIONS;
-  }
+  if (opts.isOwner) return ALL_PERMISSIONS;
   if (!opts.isMember) return 0;
   return applyChannelOverwrites(opts.basePermissions, opts.roles, opts.roleIds, opts.overwrites);
 }
@@ -298,7 +292,6 @@ export async function resolveChannelPermissions(
   const access = await resolveCommunityPermissions(db, channel.communityId, userId);
   if (access.isOwner) return ALL_PERMISSIONS;
   if (!access.isMember) return 0;
-  if ((access.permissions & Permission.ADMINISTRATOR) !== 0) return ALL_PERMISSIONS;
   const owMap = await loadOverwritesByChannel(db, [channel.id]);
   return applyChannelOverwrites(
     access.permissions,
@@ -366,11 +359,11 @@ export function assertCanManageRole(access: CommunityPermissions, role: Communit
   }
 }
 
-/** 频道覆盖只接受频道级权限位（ADMINISTRATOR 与社区级位不能作为覆盖目标） */
+/** 频道覆盖只接受频道级权限位（社区级位不能作为覆盖目标） */
 export function assertOverwritePermissions(allow: PermissionFlags, deny: PermissionFlags): void {
   const allowed = CHANNEL_OVERWRITE_PERMISSIONS.reduce((sum, p) => sum | p.bit, 0);
   if (((allow | deny) & ~allowed) !== 0) {
-    throw HttpApiError.badRequest("频道覆盖只支持频道级权限位（不含管理员与社区级权限）");
+    throw HttpApiError.badRequest("频道覆盖只支持频道级权限位（不含社区级权限）");
   }
 }
 

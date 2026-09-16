@@ -89,7 +89,7 @@ import { TalkModal as Modal } from "./TalkModal";
 /** 角色编辑器的权限位（全部位；中文名/说明/作用域来自 types 的 PERMISSION_INFO） */
 const PERMISSION_FIELDS = PERMISSION_INFO;
 
-/** 频道覆盖只接受频道级位（社区级位与 ADMINISTRATOR 由 scope 排除） */
+/** 频道覆盖只接受频道级位（社区级位由 scope 排除） */
 const OVERWRITE_FIELDS = CHANNEL_OVERWRITE_PERMISSIONS;
 
 /** 角色展示色（color 为 0xRRGGBB；null = 默认灰） */

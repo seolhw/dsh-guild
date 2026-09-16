@@ -38,7 +38,7 @@ export const THREAD_STARTER_SNIPPET_MAX = 100;
  * 目的：新社区不要一进去就是空白 —— 创建者与首批成员都能立刻看到「这个社区怎么用」。
  * 内容只描述产品通用能力，不假设社区主题；创建者可随时编辑或删除。
  */
-export const NEW_COMMUNITY_GUIDE = `**这里是社区的公告频道** —— 默认只有所有者、管理员或被授权的角色能发布，其他成员只读。
+export const NEW_COMMUNITY_GUIDE = `**这里是社区的公告频道** —— 默认全员只读，仅所有者或被单独授权的角色/成员可发布。
 
 ## 社区怎么用
 

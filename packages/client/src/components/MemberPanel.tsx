@@ -20,7 +20,6 @@ import type { CSSProperties, ReactElement } from "react";
 import { useEffect, useState } from "react";
 import {
   adminRole,
-  adminRoles,
   askConfirm,
   banUser,
   canBanMembers,
@@ -202,9 +201,8 @@ export function MemberPanel({
   // 正在处理的成员 / 封禁用户 id：对应行显示转圈并禁用操作
   const [busyUserId, setBusyUserId] = useState<ID | null>(null);
   const [everyoneMenuOpen, setEveryoneMenuOpen] = useState(false);
-  // 「设为管理员」快捷入口：分配带 ADMINISTRATOR 位的角色（没有则先建「管理员」）。
-  // 已持有任一管理员角色的成员不再显示；目标角色层级必须严格低于自己。
-  const adminRoleIds = new Set(adminRoles().map((r) => r.id));
+  // 「设为管理员」快捷入口：分配预置的「管理员」角色（被改名/删除则先按预置规格新建）。
+  // 已持有该角色的成员不再显示；目标角色层级必须严格低于自己。
   const quickTarget = adminRole();
   const canQuickAdmin =
     canRoles && (quickTarget === null || canManageRolePosition(quickTarget.position));
@@ -243,7 +241,7 @@ export function MemberPanel({
     if (communityId) await refreshCommunityMembers(communityId);
   }
 
-  /** 一键把成员设为管理员：分配带 ADMINISTRATOR 位的角色（没有则先建「管理员」） */
+  /** 一键把成员设为管理员：分配预置的「管理员」角色（被改名/删除则先新建） */
   async function makeAdmin(m: MemberLite): Promise<void> {
     if (busyUserId !== null) return;
     setBusyUserId(m.userId);
@@ -321,7 +319,7 @@ export function MemberPanel({
     const items: MenuEntry[] = [];
     if (!self) items.push({ id: "mention", label: "提及", icon: atGlyph });
     if (manageable) {
-      if (canQuickAdmin && !m.roleIds.some((id) => adminRoleIds.has(id))) {
+      if (canQuickAdmin && (quickTarget === null || !m.roleIds.includes(quickTarget.id))) {
         items.push({ id: "admin", label: "设为管理员" });
       }
       if (canRoles) items.push({ id: "roles", label: "分配角色" });

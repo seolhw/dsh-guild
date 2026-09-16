@@ -9,7 +9,7 @@ import { type ChannelRow, channelOverwrites, channels } from "../db/schema";
 import { firstOr404 } from "./response";
 
 /** 公告频道默认只读：给 @everyone 叠加 SEND_MESSAGES | CREATE_THREAD 的 deny
- *  （owner 与 ADMINISTRATOR 绕过频道覆盖，因此仍可发布；被授权 SEND_MESSAGES 的角色也可发） */
+ *  （owner 绕过频道覆盖，因此仍可发布；其他角色/成员需在该频道显式 allow SEND_MESSAGES） */
 export const ANNOUNCEMENT_READONLY_DENY: PermissionFlags =
   Permission.SEND_MESSAGES | Permission.CREATE_THREAD;
 

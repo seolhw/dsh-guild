@@ -58,7 +58,8 @@ export interface Community {
 
 /**
  * 频道定位（互斥）：普通文字（直接聊天 + 可开临时讨论）/
- * 公告（仅 owner/admin 可发）/ 话题（forum：不直接聊天，先建话题再进话题里聊）
+ * 公告（默认对 @everyone 只读，仅 owner 或被单独授权者可发）/
+ * 话题（forum：不直接聊天，先建话题再进话题里聊）
  */
 export type ChannelKind = "text" | "announcement" | "forum";
 
@@ -106,8 +107,6 @@ export const Permission = {
   KICK_MEMBERS: 1 << 9,
   /** 封禁成员：移出并阻止重新加入、管理封禁名单 */
   BAN_MEMBERS: 1 << 10,
-  /** 管理员：等价于拥有全部权限且忽略频道覆盖（仍不能转让/删除社区） */
-  ADMINISTRATOR: 1 << 11,
 } as const;
 
 export type PermissionBit = (typeof Permission)[keyof typeof Permission];
@@ -115,7 +114,7 @@ export type PermissionBit = (typeof Permission)[keyof typeof Permission];
 /** 权限位组合（bitfield number） */
 export type PermissionFlags = number;
 
-/** 全部权限位（owner 与 ADMINISTRATOR 恒定拥有） */
+/** 全部权限位（owner 恒定拥有；建社区时预置的「管理员」角色也按它初始化） */
 export const ALL_PERMISSIONS: PermissionFlags =
   Permission.VIEW_CHANNEL |
   Permission.SEND_MESSAGES |
@@ -127,16 +126,16 @@ export const ALL_PERMISSIONS: PermissionFlags =
   Permission.MANAGE_ROLES |
   Permission.INVITE_MEMBERS |
   Permission.KICK_MEMBERS |
-  Permission.BAN_MEMBERS |
-  Permission.ADMINISTRATOR;
+  Permission.BAN_MEMBERS;
 
 /** @everyone 默认权限：能看、能发、能开讨论组，但不能管理 */
 export const DEFAULT_EVERYONE_PERMISSIONS: PermissionFlags =
   Permission.VIEW_CHANNEL | Permission.SEND_MESSAGES | Permission.CREATE_THREAD;
 
 /**
- * 建社区时预置的「管理员」角色名（权限位只有 ADMINISTRATOR）。
- * 只是预设：可改名、可删除、不会自动分配给任何人。
+ * 建社区时预置的「管理员」角色名。它就是个**普通角色**：权限按创建时的
+ * ALL_PERMISSIONS 初始化，之后可改名、可删、可任意增删权限位，也不会自动分配给任何人；
+ * 频道覆盖对它一样生效（不会绕过），新增权限位也不会自动补进已有角色。
  */
 export const DEFAULT_ADMIN_ROLE_NAME = "管理员";
 
@@ -219,15 +218,9 @@ export const PERMISSION_INFO: readonly PermissionInfo[] = [
     hint: "移出并禁止重新加入、管理封禁名单",
     scope: "community",
   },
-  {
-    bit: Permission.ADMINISTRATOR,
-    label: "管理员",
-    hint: "拥有全部权限并忽略频道覆盖（删除/转让社区仍仅 owner）",
-    scope: "community",
-  },
 ];
 
-/** 可作频道覆盖目标的权限位（ADMINISTRATOR 与社区级位不可覆盖） */
+/** 可作频道覆盖目标的权限位（社区级位不可覆盖） */
 export const CHANNEL_OVERWRITE_PERMISSIONS: readonly PermissionInfo[] = PERMISSION_INFO.filter(
   (p) => p.scope === "channel",
 );
