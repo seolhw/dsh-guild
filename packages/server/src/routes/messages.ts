@@ -264,14 +264,12 @@ channelMessagesApi.post("/:id/messages", async (c) => {
   if (content.length === 0 && attachments.length === 0 && !body.shareId)
     throw HttpApiError.badRequest("content 不能为空（附件或分享卡片至少要有一样）");
 
-  // mentions：@handle -> userId
+  // mentions：@handle -> userId。解析不到的 handle 不当错误：正文里的 @ 本来就是
+  // 用户打进去的普通字符（如「价格 @ 100」、@一个不存在的人），原样留在正文里，
+  // 只是不构成提及。
   const mentions: string[] = [];
   if (body.mentionHandles && body.mentionHandles.length > 0) {
     const resolved = await resolveUserIdsByHandles(d1, body.mentionHandles);
-    const unresolved = body.mentionHandles.filter((h) => !resolved.has(h.trim()));
-    if (unresolved.length > 0) {
-      throw HttpApiError.badRequest(`无法识别的 @handle：${unresolved.join(", ")}`);
-    }
     const resolvedIds = compact(body.mentionHandles.map((h) => resolved.get(h.trim())));
     mentions.push(...uniq(resolvedIds));
   }

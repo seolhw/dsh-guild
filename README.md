@@ -9,7 +9,16 @@
 
 ## 应用截图
 
-![应用截图](./assets/screenshot.png)
+![应用截图-公告](https://r2.huiwang.fun/PixPin_2026-09-16_22-57-33.png)
+
+![应用截图-全员](https://r2.huiwang.fun/PixPin_2026-09-16_22-57-52.png)
+
+![应用截图-菜单](https://r2.huiwang.fun/PixPin_2026-09-16_22-58-43.png)
+
+![应用截图-角色](https://r2.huiwang.fun/PixPin_2026-09-16_22-59-43.png)
+
+![应用截图-权限](https://r2.huiwang.fun/PixPin_2026-09-17_00-03-24.png)
+
 
 
 ---

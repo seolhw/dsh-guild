@@ -32,7 +32,10 @@ export interface CreateMessageRequest {
   content: string;
   /** 附件：先 PUT /api/r2/objects 拿 r2Key 列表再随消息提交 */
   attachments?: MessageAttachmentPut[];
-  /** @handle 列表（前端传 handle，后端解析成 userId 存入 mentions） */
+  /**
+   * @handle 列表（前端传 handle，后端解析成 userId 存入 mentions）。
+   * 解析不到的 handle 会被忽略：正文里的 @ 就是用户打的普通字符，不报错。
+   */
   mentionHandles?: string[];
   /** 正文是否 @所有人（@everyone）：后端展开成全体成员，用于提及未读与高亮 */
   mentionEveryone?: boolean;

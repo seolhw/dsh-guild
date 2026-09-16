@@ -196,6 +196,17 @@ assert(newEvt.payload.channelId === channelId, "收到 evt.message.new");
 assert(newEvt.payload.message.content === "hi per-channel realtime", "消息内容一致");
 assert(newEvt.payload.mentionMe === true, "mentionMe=true");
 
+// 解析不到的 @handle 不是错误：正文里的 @ 当作普通字符，照常发出去、不进 mentions
+const strayMention = await call(
+  "POST",
+  `/api/channels/${channelId}/messages`,
+  { content: "价格 @ 100 元，@没有这个人 也是普通字符", mentionHandles: ["没有这个人"] },
+  tokenB,
+);
+assert(strayMention.status === 201, "无法解析的 @handle 不再报错（201）");
+assert((strayMention.json?.mentions ?? []).length === 0, "无法解析的 @handle 不进 mentions");
+assert(strayMention.json?.content.includes("@没有这个人"), "正文里的 @ 原样保留");
+
 // ping 心跳应答 + presence.set 应答
 const pongP = waitFrame(ws, (f) => f.id === "pg");
 ws.send(JSON.stringify({ type: "ping", payload: { clientTime: Date.now() }, id: "pg" }));
