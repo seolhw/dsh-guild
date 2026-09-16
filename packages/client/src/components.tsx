@@ -59,14 +59,17 @@ const PAGE_HOST_CSS = `
 `;
 
 /**
- * 暗色主题下的灰度文字提亮（宿主 token 在深色底上偏暗，小字难以辨认）：
- * 宿主主题由 `body[data-ds-dark-theme]` 切换，这里只覆盖本插件自己的
- * --dsht-label-* 变量层（palette.muted 引用它），不动宿主 token，
- * 因此不会影响 DSH 其他界面。插件只保留一档辅助灰，暗色下提亮到 bluish-300。
+ * 暗色主题下的插件内覆盖层（宿主主题由 `body[data-ds-dark-theme]` 切换）：
+ *  - 灰度文字提亮：宿主 token 在深色底上偏暗，小字难以辨认，这里只覆盖本插件
+ *    自己的 --dsht-label-* 变量层（palette.muted 引用它），不动宿主 token，
+ *    因此不会影响 DSH 其他界面。插件只保留一档辅助灰，暗色下提亮到 bluish-300。
+ *  - 社区 logo 圆底：亮色是白底（palette.communityAvatarBg 的 var 兜底值），
+ *    暗色换成黑底，避免深色界面里一圈刺眼的白。
  */
-const DARK_TEXT_CSS = `
+const DARK_THEME_CSS = `
 body[data-ds-dark-theme] {
   --dsht-label-tertiary: var(--dsw-static-neutral-bluish-300);
+  --dsht-community-avatar-bg: #000000;
 }
 `;
 
@@ -77,7 +80,7 @@ function ensureHostCss(): void {
   if (hostCssInjected) return;
   const style = document.createElement("style");
   style.setAttribute("data-dsht-page-css", "");
-  style.textContent = `${PAGE_HOST_CSS}${DARK_TEXT_CSS}`;
+  style.textContent = `${PAGE_HOST_CSS}${DARK_THEME_CSS}`;
   document.head.appendChild(style);
   hostCssInjected = true;
 }

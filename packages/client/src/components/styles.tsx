@@ -46,8 +46,12 @@ export const palette = {
   /** 头像无图时的默认底色渐变 */
   avatarFallback:
     "linear-gradient(135deg, var(--dsw-static-deepseek-500), var(--dsw-static-deepseek-400))",
-  /** 社区头像的圆形底色（白色圆底 + 内缩 logo，亮暗主题都用白） */
-  communityAvatarBg: "#ffffff",
+  /**
+   * 社区头像（社区 logo）的圆形底色：内缩 logo 四周露出的那一圈。
+   * 亮色主题白底、暗色主题黑底，取值走 --dsht-community-avatar-bg 变量层
+   * （暗色覆盖由 components.tsx 的 DARK_THEME_CSS 下发）。
+   */
+  communityAvatarBg: "var(--dsht-community-avatar-bg, #ffffff)",
 } as const;
 
 /** 阴影：集中定义，避免 rgba 黑散落在各组件里 */
