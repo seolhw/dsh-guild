@@ -148,11 +148,20 @@ flowchart LR
 
 | 键 | 默认 | 说明 |
 | --- | --- | --- |
-| `serverUrl` | `http://127.0.0.1:8787` | Server 地址；生产填 `https://<你的域名>` |
+| `serverUrl` | `https://dsh-talk-api.huiwang.fun` | Server 地址；自托管就改成自己的域名 |
 | `handle` | `""` | 当前账号用户名（登录后自动写入） |
 | `token` | `""`（secret） | 会话令牌，登录后自动写入 |
 | `autoReconnect` | `true` | WebSocket 断线自动重连 |
 | `share.maxSizeMb` | `50` | 会话分享包体积上限 |
+
+首次启动会把默认的 `serverUrl` **写进 DSH 的 settings 文档**（`$DSH_HOME/settings.yaml` 的 `talk` 段），之后它就以这份配置为准：
+
+```yaml
+talk:
+  serverUrl: https://dsh-talk-api.huiwang.fun
+```
+
+想连别的后端（自托管 / 本地 Server），在 **DSH 设置页的插件设置**里改，或直接改上面这个文件 —— 不用改代码，改过的值不会被启动流程覆盖。本地开发另有 `BETTER_AUTH_URL` 环境变量作为**临时覆盖**（见 [参与开发](docs/development.md)），它只影响当次进程、不写进 settings 文档。
 
 ### Server 环境变量
 

@@ -65,7 +65,7 @@ pnpm dev      # overlay 模式：自动打包并启动 DSH Web（默认 http://1
 
 - `name` 必须指向**仓库根打包产物**（`./lib/index.mjs`），不要指向 `packages/host` —— client 半边靠「该 loader row 解析出的模块向上找最近的 `package.json`」来发现：只有根包 `dsh-talk` 同时声明了 `dsh.client` 与 `exports["./client"]`，指向 `packages/host` 只会加载 host、GUI 不出现插件 UI。
 - overlay 与「profile 里已安装的 dsh-talk」不能同时生效：两条 loader row 同 id 会冲突（启动报 duplicate loader entry id）。`pnpm dev` 会自动处理这两种情况：该 profile 里**没装**插件时直接用它；**装了**时改用一个隔离 profile（`<profile>-dev`，只含 `dsh-base` + `dsh-web-app`，不存在时自动从官方模板初始化），插件完全由 `cordis.yml` overlay 提供，因此 dev 永远跑本地构建、装不装插件都不用手动切换。要覆盖默认行为用 `DSH_PROFILE`（默认 `web`）/ `DSH_TALK_PROFILE`。
-- 本地开发不想连本地 Server 时，把 `.env` 的 `BETTER_AUTH_URL` 指向线上地址即可（`pnpm dev` 会据此提示连的是哪一端）。
+- 后端地址的优先级：`BETTER_AUTH_URL`（仅本地开发/自托管时存在，`dsh` 从仓库根 `.env` 载入）> settings 文档里的 `talk.serverUrl`（`$DSH_HOME/settings.yaml`，发布版安装走这条，首次启动会把默认值写进去）> 代码里的默认常量。`BETTER_AUTH_URL` 只影响当次进程，**不会**写进 settings 文档，所以不会把 `127.0.0.1` 污染给安装版；不想连本地 Server 时把它指向线上地址即可（`pnpm dev` 会据此提示连的是哪一端）。
 
 ### 3. 开始使用
 

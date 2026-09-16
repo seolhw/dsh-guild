@@ -34,10 +34,16 @@ const TALK_NS = "talk";
 // ---------- talk 配置 schema（默认值 + 用户层覆盖） ----------
 
 /**
- * 默认后端地址：优先取本地环境变量 BETTER_AUTH_URL（`dsh web` 启动时已从仓库根
- * .env 载入），未设置时回退到本地 8787。这是 settings 文档缺 key 时的兜底值。
+ * 发布版默认后端：插件的兜底指向（作者部署的公共 Server）。用户改成自己的
+ * 自托管地址只需改 settings 文档（~/.dsh/settings.yaml 的 talk 段）或设置页。
  */
-const DEFAULT_SERVER_URL = process.env.BETTER_AUTH_URL?.trim() || "http://127.0.0.1:8787";
+const PRODUCTION_SERVER_URL = "https://dsh-talk-api.huiwang.fun";
+
+/**
+ * schema 默认值：本地开发用仓库根 .env 的 BETTER_AUTH_URL（`dsh web` 启动时已载入），
+ * 否则指向生产地址。schema 默认值只是兜底，用户层里写了就以用户为准。
+ */
+const DEFAULT_SERVER_URL = process.env.BETTER_AUTH_URL?.trim() || PRODUCTION_SERVER_URL;
 
 /** 显式标注成 TalkSettings：register() 的 T 由 schema 推导，标注后与下游 scope 类型一致 */
 const talkSettingsSchema: z<TalkSettings> = z.object({
@@ -97,12 +103,12 @@ function sanitizePatch(raw: unknown): Partial<TalkSettings> {
   return patch;
 }
 
-// ---------- serverUrl 的环境来源 ----------
+// ---------- 生效配置：settings 文档为主，BETTER_AUTH_URL 为本地开发覆盖 ----------
 
 /**
- * BETTER_AUTH_URL 是后端 Server 唯一的环境声明：本地地址就连本地，
- * 生产地址就连生产。`dsh web` 启动时会从仓库根 .env 加载它（dsh-app-boot），
- * 因此 host 进程可直接读到。设置了它时优先于 settings 里的 serverUrl。
+ * BETTER_AUTH_URL 只在本地开发/自托管里出现：`dsh web` 从仓库根 .env 载入它，
+ * 于是 dev 不必把自己的地址写进 settings 文档（那是全局共享的）。设置了它就
+ * 优先于 settings 里的 serverUrl；发布版安装（无 .env）则以 settings 文档为准。
  */
 function envServerUrl(): string | undefined {
   const value = process.env.BETTER_AUTH_URL?.trim();
@@ -114,6 +120,21 @@ function effectiveSettings(scope: SettingsScope<TalkSettings>): TalkSettings {
   const current = scope.get();
   const serverUrl = envServerUrl();
   return serverUrl ? { ...current, serverUrl } : current;
+}
+
+/**
+ * 首次运行把默认 serverUrl 落进 settings 文档（~/.dsh/settings.yaml 的 talk 段）：
+ * 用户在设置页或该文件里就能看到并改成任意后端，而不用去猜一个隐式默认值。
+ * 只在用户层没有该键时写一次（改过的值不会被覆盖）；由 BETTER_AUTH_URL 指定的
+ * 本地开发地址不写文档，避免把 loopback 地址污染进全局配置。
+ */
+function seedServerUrl(ctx: Context, scope: SettingsScope<TalkSettings>): void {
+  if (envServerUrl()) return;
+  const descriptor = ctx.settings.describe().find((entry) => entry.ns === TALK_NS);
+  if (descriptor?.user !== undefined && "serverUrl" in (descriptor.user as object)) return;
+  scope.update({ serverUrl: DEFAULT_SERVER_URL }).catch((error: unknown) => {
+    console.warn(`[dsh-talk] 写入默认 serverUrl 失败: ${errorOf(error)}`);
+  });
 }
 
 // ---------- 本地 DSH 会话：服务取用 + 打包 / 还原 ----------
@@ -435,6 +456,8 @@ export function apply(ctx: Context): void {
   const scope = ctx.settings.register(TALK_NS, talkSettingsSchema, {
     applies: "live",
   });
+  // 首次运行把默认后端写进 settings 文档，用户随后可在设置页 / settings.yaml 里改
+  seedServerUrl(ctx, scope);
 
   const disposers: Array<() => void> = [];
   for (const route of talkRoutes(ctx, scope)) {
