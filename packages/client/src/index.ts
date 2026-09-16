@@ -13,7 +13,7 @@
 // 另 inject "sessions"：克隆还原出的 DSH 会话要能在 UI 里打开。
 // ================================================================
 
-import type { ClientContext } from "@deepseek-ai/dsh-client-runtime/client";
+import type { Context as ClientContext } from "@deepseek-ai/cordis";
 import "./augment";
 import { TalkPage } from "./components";
 import {

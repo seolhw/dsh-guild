@@ -49,7 +49,7 @@ pnpm dev      # overlay 模式：自动打包并启动 DSH Web（默认 http://1
 
 侧栏底部出现 **DSH-Talk（社区）** 入口即加载成功。
 
-- `pnpm dev` = `tsdown --watch`（源码变更自动重打包 `lib/`）+ `dsh web --patch ./cordis.yml`（overlay 加载），产物更新后自动重启；
+- `pnpm dev` = `tsdown --watch`（源码变更自动重打包 `lib/`）+ `dsh --profile <自动选择> --patch ./cordis.yml`（overlay 加载），产物更新后自动重启；
 - 只改 **client**（`packages/client`）时不会重启进程：DSH 自带的 client-hmr 会把新模块热重载进浏览器，等打包完成刷新页面即可；
 - 改 **host**（`packages/host`）需要重启，`pnpm dev` 会自动做。
 
@@ -64,7 +64,7 @@ pnpm dev      # overlay 模式：自动打包并启动 DSH Web（默认 http://1
 ```
 
 - `name` 必须指向**仓库根打包产物**（`./lib/index.mjs`），不要指向 `packages/host` —— client 半边靠「该 loader row 解析出的模块向上找最近的 `package.json`」来发现：只有根包 `dsh-talk` 同时声明了 `dsh.client` 与 `exports["./client"]`，指向 `packages/host` 只会加载 host、GUI 不出现插件 UI。
-- 开发时用 overlay 就够，**不要再把同一个包 `add` 进 profile**：两条 loader row 同 id 会冲突（启动报 duplicate loader entry id）。
+- overlay 与「profile 里已安装的 dsh-talk」不能同时生效：两条 loader row 同 id 会冲突（启动报 duplicate loader entry id）。`pnpm dev` 会自动处理这两种情况：该 profile 里**没装**插件时直接用它；**装了**时改用一个隔离 profile（`<profile>-dev`，只含 `dsh-base` + `dsh-web-app`，不存在时自动从官方模板初始化），插件完全由 `cordis.yml` overlay 提供，因此 dev 永远跑本地构建、装不装插件都不用手动切换。要覆盖默认行为用 `DSH_PROFILE`（默认 `web`）/ `DSH_TALK_PROFILE`。
 - 本地开发不想连本地 Server 时，把 `.env` 的 `BETTER_AUTH_URL` 指向线上地址即可（`pnpm dev` 会据此提示连的是哪一端）。
 
 ### 3. 开始使用

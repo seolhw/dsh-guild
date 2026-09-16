@@ -186,9 +186,18 @@ export function CommunitiesRail({
   const me = talk.me;
   const unreadLabel = talk.inboxUnread > 99 ? "99+" : String(talk.inboxUnread);
 
-  /** 统一给窄列图标包一层 hover 卡（去除原生 title，避免重复提示） */
+  /** 统一给窄列图标包一层 hover 卡（去除原生 title，避免重复提示）。0.1.5 的
+   * HoverCard 要求 copyLabel/copiedLabel：本插件不传 copyText，两个标签不会渲染。 */
   function withTip(anchor: ReactNode, content: ReactNode, delay = 300): ReactElement {
-    return <HoverCard openDelayMs={delay} content={content} anchor={anchor} />;
+    return (
+      <HoverCard
+        openDelayMs={delay}
+        content={content}
+        anchor={anchor}
+        copyLabel="复制"
+        copiedLabel="已复制"
+      />
+    );
   }
 
   return (

@@ -946,6 +946,8 @@ function RolesDialog({ open, onClose }: { open: boolean; onClose: () => void }):
             </div>
             <HoverCard
               openDelayMs={300}
+              copyLabel="复制"
+              copiedLabel="已复制"
               content={
                 <ActionTip
                   title="上移层级"
@@ -966,6 +968,8 @@ function RolesDialog({ open, onClose }: { open: boolean; onClose: () => void }):
             />
             <HoverCard
               openDelayMs={300}
+              copyLabel="复制"
+              copiedLabel="已复制"
               content={
                 <ActionTip
                   title="下移层级"
@@ -998,6 +1002,8 @@ function RolesDialog({ open, onClose }: { open: boolean; onClose: () => void }):
             </Button>
             <HoverCard
               openDelayMs={300}
+              copyLabel="复制"
+              copiedLabel="已复制"
               content={
                 <ActionTip
                   title="删除角色"

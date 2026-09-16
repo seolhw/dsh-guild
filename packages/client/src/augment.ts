@@ -5,6 +5,7 @@
 // ================================================================
 
 import type { ILayout } from "@deepseek-ai/dsh-client-ui-layout/client";
+import type {} from "@deepseek-ai/dsh-client-ui-renderer/client";
 import type {
   SidebarFooterActionOwnerProps,
   SidebarSettingsOwnerProps,
@@ -12,8 +13,9 @@ import type {
 
 /**
  * DSH-Talk 注册进官方会话页签环（`conversation.view`）时的槽位声明。
- * 官方 rc.6 契约（@deepseek-ai/dsh-client-ui-conversation/client）：
- *   kind: 'list'; scope: 'session'；owner 为空（宿主不注入内容）；
+ * 官方 0.1.5 契约（@deepseek-ai/dsh-client-ui-conversation/client）：
+ *   kind: 'list'; scope: 'session'；owner 为 ConvViewOwnerProps
+ *   （viewRequest / openView / completeViewRequest，本插件不使用）；
  *   页签文字取自注册 options.label，正文整页由注册组件自绘。
  * ui-conversation 包未装进本插件类型图，这里补一条等价的 SlotMap 合并。
  */

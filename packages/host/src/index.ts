@@ -12,7 +12,6 @@ import { isAbsolute, join } from "node:path";
 import type { Context } from "@deepseek-ai/cordis";
 import type { WebRoute } from "@deepseek-ai/dsh-host-webserver";
 import type { SettingsScope } from "@deepseek-ai/dsh-settings";
-import { settingsNamespace } from "@deepseek-ai/dsh-settings";
 import z from "@deepseek-ai/schemastery";
 import type {
   AgentSessionPackage,
@@ -29,7 +28,8 @@ export const name = "dsh-talk";
 /** 需要 DSH 内置 service 就绪后才启动（会话分享依赖 sessions / sessionPersistence）。 */
 export const inject = ["settings", "webServer", "sessions", "sessionPersistence"];
 
-const TALK_NS = settingsNamespace("talk");
+/** settings 命名空间：0.1.5 起 register() 直接收小写连字符字符串，不再需要 brand 包装 */
+const TALK_NS = "talk";
 
 // ---------- talk 配置 schema（默认值 + 用户层覆盖） ----------
 
@@ -39,7 +39,8 @@ const TALK_NS = settingsNamespace("talk");
  */
 const DEFAULT_SERVER_URL = process.env.BETTER_AUTH_URL?.trim() || "http://127.0.0.1:8787";
 
-const talkSettingsSchema = z.object({
+/** 显式标注成 TalkSettings：register() 的 T 由 schema 推导，标注后与下游 scope 类型一致 */
+const talkSettingsSchema: z<TalkSettings> = z.object({
   serverUrl: z.string().default(DEFAULT_SERVER_URL),
   handle: z.string().default(""),
   /** secret：settings 文档 redact 时会被剥掉，不会随描述接口外泄 */
@@ -431,7 +432,7 @@ function talkRoutes(ctx: Context, scope: SettingsScope<TalkSettings>): WebRoute[
 }
 
 export function apply(ctx: Context): void {
-  const scope = ctx.settings.register<TalkSettings>(TALK_NS, talkSettingsSchema, {
+  const scope = ctx.settings.register(TALK_NS, talkSettingsSchema, {
     applies: "live",
   });
 

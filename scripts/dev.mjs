@@ -4,21 +4,60 @@
  * 同时负责两件事：
  *  1. 以 watch 模式跑 tsdown（源码变更 → 自动重打包 lib/）；
  *  2. 轮询 lib/ 产物，编译结果稳定后拉起 / 重启
- *     `npx @deepseek-ai/dsh web --patch ./cordis.yml`。
+ *     `npx @deepseek-ai/dsh --profile <dev 用 profile> --patch ./cordis.yml`。
  *
  * 只有 host 半边（lib/index.mjs）变化才会重启进程：它是启动时被 import 的
  * Node 侧插件（配置接口 / 会话打包 / 还原），改动必须重启才生效。client 半边
  * （lib/client.js）不用重启——DSH 的 client-hmr 会轮询产物并把新模块热重载进
  * 浏览器（~1s），所以改 UI 只需等 tsdown 打包完成即可，浏览器会自动更新。
  * 重启在本机 npx 缓存里跑，并加 --no-open 避免反复弹浏览器（首次仍会自动打开）。
+ *
+ * overlay 与「profile 里已安装的 dsh-talk」会撞同一个 loader entry id
+ * （duplicate loader entry id: dsh-talk），所以看 profile 现状自动选：
+ * 装了插件 → 改用隔离 profile（`<profile>-dev`，不存在时从官方模板初始化，
+ * 只含 base + web-app，插件完全由本仓库的 cordis.yml 提供）；
+ * 没装 → 直接用该 profile。两种启动方式因此都可用，dev 永远跑本地构建。
+ * 想强制指定 profile 用 DSH_TALK_PROFILE。
  */
 import { spawn, spawnSync } from "node:child_process";
-import { readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { homedir } from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+// 用户实际使用的 profile（也就是 pnpm 里装插件的那份）。
+const USER_PROFILE = process.env.DSH_PROFILE?.trim() || "web";
+const DSH_HOME = process.env.DSH_HOME?.trim() || path.join(homedir(), ".dsh");
+const TALK_BUNDLE = "dsh-talk";
+
+const profileDir = (name) => path.join(DSH_HOME, "profiles", name);
+
+/** 该 profile 里是否装了 dsh-talk（dependencies 或 profile.bundles 任一命中）。 */
+function profileHasTalk(name) {
+  try {
+    const pkg = JSON.parse(readFileSync(path.join(profileDir(name), "package.json"), "utf8"));
+    const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+    return TALK_BUNDLE in deps || (pkg.dsh?.profile?.bundles ?? []).includes(TALK_BUNDLE);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * overlay 与「profile 里已安装的 dsh-talk」会撞同一个 loader entry id
+ * （duplicate loader entry id: dsh-talk），所以装了插件时就自动改用隔离 profile
+ * （只含 base + web-app，插件完全由 cordis.yml 提供）；没装则直接用该 profile。
+ * 两种启动方式因此都可用，dev 永远跑本地构建。DSH_TALK_PROFILE 可强制指定。
+ */
+const DEV_PROFILE = process.env.DSH_TALK_PROFILE?.trim() ||
+  (profileHasTalk(USER_PROFILE) ? `${USER_PROFILE}-dev` : USER_PROFILE);
+// 隔离 profile 不存在时用官方模板初始化（dsh 的 --from-default-profile）。
+const INIT_PROFILE = existsSync(path.join(profileDir(DEV_PROFILE), "package.json"))
+  ? ""
+  : ` --from-default-profile ${USER_PROFILE}`;
 
 // 决定「可以启动/重启 server」的产物：host 入口 + client 入口。
 const WATCH_TARGETS = ["lib/index.mjs", "lib/client.js"];
@@ -135,7 +174,7 @@ function killTree(pid) {
 function bootServer(first) {
   const prefix = "npx --yes --no-install @deepseek-ai/dsh";
   const noOpen = first ? "" : " --no-open";
-  const cmd = `${prefix} web --patch ./cordis.yml${noOpen}`;
+  const cmd = `${prefix} --profile ${DEV_PROFILE}${INIT_PROFILE} --patch ./cordis.yml${noOpen}`;
   if (!first) {
     console.log(`\n[dsh-talk] lib 已重建，正在重启 DSH web（${cmd}）...`);
   }
@@ -246,6 +285,13 @@ console.log(
 );
 console.log(
   "[dsh-talk] 注意：本脚本只负责「打包 lib/ 并启动 DSH web（浏览器侧 UI）」，不会启动后端 Server。",
+);
+console.log(
+  `[dsh-talk] DSH profile = ${DEV_PROFILE}${
+    DEV_PROFILE === USER_PROFILE
+      ? `（${USER_PROFILE} 里没装 dsh-talk，直接用它）`
+      : `（${USER_PROFILE} 里装着 dsh-talk，改用隔离 profile，插件走 cordis.yml overlay）`
+  }`,
 );
 console.log(
   IS_LOCAL_SERVER
