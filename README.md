@@ -133,7 +133,7 @@ npx @deepseek-ai/dsh plugin --profile web add github:seolhw/dsh-guild
 
 ### 代理设置（可选）
 
-Server 地址为 `https://dsh-guild-api.huiwang.fun` ，部署在 Cloudflare 上，国内直连可能不稳定；在代理工具里让这个域名**走代理**（注意别误加进直连 / 绕过列表，也别被广告拦截规则 REJECT）即可。
+Server 地址为 `https://dsh-guild-api.huiwang.fun` ，部署在 Cloudflare 上，国内直连可能不稳定；在代理工具里让这个域名**走代理**即可。
 
 浏览器打开 `https://dsh-guild-api.huiwang.fun/healthz` 能返回 JSON，即说明链路已通。
 
