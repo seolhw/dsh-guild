@@ -17,6 +17,7 @@ import { useState } from "react";
 import {
   askConfirm,
   canEditMessage,
+  canManageMessages,
   canPinMessages,
   canRetractMessage,
   channelPermissions,
@@ -244,6 +245,9 @@ export function MessageRow({
   const [pinning, setPinning] = useState(false);
   const [reacting, setReacting] = useState<string | null>(null);
   const mine = guild.me !== null && item.authorId === guild.me.id;
+  /** 有 MANAGE_MESSAGES（含 owner）时，删自己的消息也走「删除」语义 */
+  const hasManage = canManageMessages();
+  const retractOnly = mine && !hasManage;
   const mentionedMe = (item.mentions ?? []).includes(guild.me?.id ?? "");
   const focused = guild.view.focusMessageId === item.id;
   const allowEdit = canEditMessage(item);
@@ -530,8 +534,8 @@ export function MessageRow({
                 icon={removing ? <Spinner size={14} /> : <IconTrashOutline16 />}
                 disabled={removing}
                 onClick={() => void remove()}
-                aria-label={removing ? "处理中" : mine ? "撤回" : "删除"}
-                title={mine ? "撤回消息（2 分钟内）" : "删除消息"}
+                aria-label={removing ? "处理中" : retractOnly ? "撤回" : "删除"}
+                title={retractOnly ? "撤回消息（2 分钟内）" : "删除消息"}
               />
             ) : null}
           </>

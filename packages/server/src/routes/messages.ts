@@ -63,7 +63,11 @@ import { loadChannelRow } from "../lib/channels";
 import { db as dbOf } from "../lib/db";
 import { HttpApiError } from "../lib/errors";
 import { newId } from "../lib/ids";
-import { requireChannelPermission, requireCommunityPermission } from "../lib/permissions";
+import {
+  requireChannelPermission,
+  requireCommunityPermission,
+  resolveCommunityPermissions,
+} from "../lib/permissions";
 import {
   hasMyReaction,
   loadMessageReactions,
@@ -552,25 +556,25 @@ async function assertCanEditMessage(
   );
 }
 
-/** 谁能删/撤回：作者仅在发送后 2 分钟内可撤回；持有 MANAGE_MESSAGES 位可随时删 */
+/**
+ * 谁能删/撤回：
+ *   - 持有 MANAGE_MESSAGES 位者（owner 隐式全权）可随时删任意消息，包括自己的
+ *   - 否则作者本人在发送后 2 分钟内可撤回，超时只能编辑
+ */
 async function assertCanRetractMessage(
   db: ReturnType<typeof dbOf>,
   row: MessageRow,
   userId: string,
 ): Promise<void> {
+  const access = await resolveCommunityPermissions(db, row.communityId, userId);
+  if ((access.permissions & Permission.MANAGE_MESSAGES) !== 0) return;
   if (row.authorId === userId) {
     if (Date.now() - row.createdAt > MESSAGE_RETRACT_MS) {
       throw new HttpApiError(403, "RETRACT_EXPIRED", "消息已发送超过 2 分钟，只能编辑，不能撤回");
     }
     return;
   }
-  await requireCommunityPermission(
-    db,
-    row.communityId,
-    userId,
-    Permission.MANAGE_MESSAGES,
-    "无权管理消息",
-  );
+  throw HttpApiError.forbidden("无权管理消息");
 }
 
 // --- PATCH /:id —— 改消息（作者或 owner/admin） ---

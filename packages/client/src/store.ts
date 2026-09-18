@@ -2623,11 +2623,11 @@ export function canEditMessage(item: MessageItem): boolean {
   return canManageMessages();
 }
 
-/** 能否撤回/删除：作者仅在发送 2 分钟内；持有 MANAGE_MESSAGES 随时可删 */
+/** 能否撤回/删除：有 MANAGE_MESSAGES（含 owner）随时可删任意消息；否则作者限 2 分钟内 */
 export function canRetractMessage(item: MessageItem): boolean {
   if (state.me === null) return false;
-  if (item.authorId === state.me.id) return Date.now() - item.createdAt <= MESSAGE_RETRACT_MS;
-  return canManageMessages();
+  if (canManageMessages()) return true;
+  return item.authorId === state.me.id && Date.now() - item.createdAt <= MESSAGE_RETRACT_MS;
 }
 
 // ---------------- 回复 / 定位高亮 ----------------
