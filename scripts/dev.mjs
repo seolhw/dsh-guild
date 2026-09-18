@@ -1,5 +1,5 @@
 /**
- * DSH-Talk 开发看门狗：pnpm dev 的唯一入口。
+ * DSH-Guild 开发看门狗：pnpm dev 的唯一入口。
  *
  * 同时负责两件事：
  *  1. 以 watch 模式跑 tsdown（源码变更 → 自动重打包 lib/）；
@@ -12,12 +12,12 @@
  * 浏览器（~1s），所以改 UI 只需等 tsdown 打包完成即可，浏览器会自动更新。
  * 重启在本机 npx 缓存里跑，并加 --no-open 避免反复弹浏览器（首次仍会自动打开）。
  *
- * overlay 与「profile 里已安装的 dsh-talk」会撞同一个 loader entry id
- * （duplicate loader entry id: dsh-talk），所以看 profile 现状自动选：
+ * overlay 与「profile 里已安装的 dsh-guild」会撞同一个 loader entry id
+ * （duplicate loader entry id: dsh-guild），所以看 profile 现状自动选：
  * 装了插件 → 改用隔离 profile（`<profile>-dev`，不存在时从官方模板初始化，
  * 只含 base + web-app，插件完全由本仓库的 cordis.yml 提供）；
  * 没装 → 直接用该 profile。两种启动方式因此都可用，dev 永远跑本地构建。
- * 想强制指定 profile 用 DSH_TALK_PROFILE。
+ * 想强制指定 profile 用 DSH_GUILD_PROFILE。
  */
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -31,29 +31,29 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // 用户实际使用的 profile（也就是 pnpm 里装插件的那份）。
 const USER_PROFILE = process.env.DSH_PROFILE?.trim() || "web";
 const DSH_HOME = process.env.DSH_HOME?.trim() || path.join(homedir(), ".dsh");
-const TALK_BUNDLE = "dsh-talk";
+const GUILD_BUNDLE = "dsh-guild";
 
 const profileDir = (name) => path.join(DSH_HOME, "profiles", name);
 
-/** 该 profile 里是否装了 dsh-talk（dependencies 或 profile.bundles 任一命中）。 */
-function profileHasTalk(name) {
+/** 该 profile 里是否装了 dsh-guild（dependencies 或 profile.bundles 任一命中）。 */
+function profileHasGuild(name) {
   try {
     const pkg = JSON.parse(readFileSync(path.join(profileDir(name), "package.json"), "utf8"));
     const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-    return TALK_BUNDLE in deps || (pkg.dsh?.profile?.bundles ?? []).includes(TALK_BUNDLE);
+    return GUILD_BUNDLE in deps || (pkg.dsh?.profile?.bundles ?? []).includes(GUILD_BUNDLE);
   } catch {
     return false;
   }
 }
 
 /**
- * overlay 与「profile 里已安装的 dsh-talk」会撞同一个 loader entry id
- * （duplicate loader entry id: dsh-talk），所以装了插件时就自动改用隔离 profile
+ * overlay 与「profile 里已安装的 dsh-guild」会撞同一个 loader entry id
+ * （duplicate loader entry id: dsh-guild），所以装了插件时就自动改用隔离 profile
  * （只含 base + web-app，插件完全由 cordis.yml 提供）；没装则直接用该 profile。
- * 两种启动方式因此都可用，dev 永远跑本地构建。DSH_TALK_PROFILE 可强制指定。
+ * 两种启动方式因此都可用，dev 永远跑本地构建。DSH_GUILD_PROFILE 可强制指定。
  */
-const DEV_PROFILE = process.env.DSH_TALK_PROFILE?.trim() ||
-  (profileHasTalk(USER_PROFILE) ? `${USER_PROFILE}-dev` : USER_PROFILE);
+const DEV_PROFILE = process.env.DSH_GUILD_PROFILE?.trim() ||
+  (profileHasGuild(USER_PROFILE) ? `${USER_PROFILE}-dev` : USER_PROFILE);
 // 隔离 profile 不存在时用官方模板初始化（dsh 的 --from-default-profile）。
 const INIT_PROFILE = existsSync(path.join(profileDir(DEV_PROFILE), "package.json"))
   ? ""
@@ -176,7 +176,7 @@ function bootServer(first) {
   const noOpen = first ? "" : " --no-open";
   const cmd = `${prefix} --profile ${DEV_PROFILE}${INIT_PROFILE} --patch ./cordis.yml${noOpen}`;
   if (!first) {
-    console.log(`\n[dsh-talk] lib 已重建，正在重启 DSH web（${cmd}）...`);
+    console.log(`\n[dsh-guild] lib 已重建，正在重启 DSH web（${cmd}）...`);
   }
   const child = run(cmd);
   server = child;
@@ -220,16 +220,16 @@ async function checkServerHealth() {
   if (ok === serverHealthy) return;
   serverHealthy = ok;
   if (ok) {
-    console.log(`\n[dsh-talk] ✅ 后端 Server 已就绪：${SERVER_HEALTH_URL}\n`);
+    console.log(`\n[dsh-guild] ✅ 后端 Server 已就绪：${SERVER_HEALTH_URL}\n`);
   } else if (IS_LOCAL_SERVER) {
     console.error(
-      `\n[dsh-talk] ❌ 无法连通后端 Server（${SERVER_URL}）。社区页将报 net::ERR_CONNECTION_REFUSED。\n` +
-      "[dsh-talk] 请另开一个终端运行：pnpm dev:server\n",
+      `\n[dsh-guild] ❌ 无法连通后端 Server（${SERVER_URL}）。社区页将报 net::ERR_CONNECTION_REFUSED。\n` +
+      "[dsh-guild] 请另开一个终端运行：pnpm dev:server\n",
     );
   } else {
     console.error(
-      `\n[dsh-talk] ❌ 无法连通远端 Server（${SERVER_URL}，来自 BETTER_AUTH_URL）。\n` +
-      "[dsh-talk] 请检查该地址是否可访问以及本机网络。\n",
+      `\n[dsh-guild] ❌ 无法连通远端 Server（${SERVER_URL}，来自 BETTER_AUTH_URL）。\n` +
+      "[dsh-guild] 请检查该地址是否可访问以及本机网络。\n",
     );
   }
 }
@@ -260,7 +260,7 @@ function tick() {
   if (hostSig === handledHostSig) {
     // 只有 client 半边变了：client-hmr 会热重载浏览器侧模块，进程不用重启
     console.log(
-      "\n[dsh-talk] client 已重建，浏览器会在 1s 内自动热重载（无需重启 DSH web）。\n",
+      "\n[dsh-guild] client 已重建，浏览器会在 1s 内自动热重载（无需重启 DSH web）。\n",
     );
     return;
   }
@@ -281,22 +281,22 @@ process.on("SIGINT", () => shutdown(0));
 process.on("SIGTERM", () => shutdown(0));
 
 console.log(
-  "[dsh-talk] dev watch：源码变更将自动打包 lib/ 并重启 DSH web（Ctrl+C 退出）",
+  "[dsh-guild] dev watch：源码变更将自动打包 lib/ 并重启 DSH web（Ctrl+C 退出）",
 );
 console.log(
-  "[dsh-talk] 注意：本脚本只负责「打包 lib/ 并启动 DSH web（浏览器侧 UI）」，不会启动后端 Server。",
+  "[dsh-guild] 注意：本脚本只负责「打包 lib/ 并启动 DSH web（浏览器侧 UI）」，不会启动后端 Server。",
 );
 console.log(
-  `[dsh-talk] DSH profile = ${DEV_PROFILE}${
+  `[dsh-guild] DSH profile = ${DEV_PROFILE}${
     DEV_PROFILE === USER_PROFILE
-      ? `（${USER_PROFILE} 里没装 dsh-talk，直接用它）`
-      : `（${USER_PROFILE} 里装着 dsh-talk，改用隔离 profile，插件走 cordis.yml overlay）`
+      ? `（${USER_PROFILE} 里没装 dsh-guild，直接用它）`
+      : `（${USER_PROFILE} 里装着 dsh-guild，改用隔离 profile，插件走 cordis.yml overlay）`
   }`,
 );
 console.log(
   IS_LOCAL_SERVER
-    ? `[dsh-talk] 后端 Server = 本地 ${SERVER_URL}，需另开一个终端运行：pnpm dev:server`
-    : `[dsh-talk] 后端 Server = 远端 ${SERVER_URL}（来自 BETTER_AUTH_URL），无需本地 dev:server`,
+    ? `[dsh-guild] 后端 Server = 本地 ${SERVER_URL}，需另开一个终端运行：pnpm dev:server`
+    : `[dsh-guild] 后端 Server = 远端 ${SERVER_URL}（来自 BETTER_AUTH_URL），无需本地 dev:server`,
 );
 
 // TSDOWN_WATCH 告诉 tsdown.config.ts 这次是 watch：别 clean 掉整个 lib/，
@@ -304,7 +304,7 @@ console.log(
 builder = run("tsdown --watch", { TSDOWN_WATCH: "1" });
 builder.on("exit", (code) => {
   if (shuttingDown) return;
-  console.error(`[dsh-talk] tsdown --watch 异常退出（code ${code}），结束 dev`);
+  console.error(`[dsh-guild] tsdown --watch 异常退出（code ${code}），结束 dev`);
   shutdown(code ?? 1);
 });
 

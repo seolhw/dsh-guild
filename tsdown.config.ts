@@ -1,5 +1,5 @@
 /**
- * DSH-Talk 双面（dual-face）打包配置：
+ * DSH-Guild 双面（dual-face）打包配置：
  *  - Node.js host（packages/host/src/index.ts）→ lib/index.mjs + index.cjs + d.ts
  *  - 浏览器 client（packages/client/src/index.ts）→ lib/client.js
  *    client 产物以 window.__ModuleLoader__.load({id, factory}) 交给 DSH 的
@@ -27,7 +27,7 @@ export default (): UserConfig[] => {
   const watch = process.env.TSDOWN_WATCH === "1" || process.argv.includes("--watch");
   const configs: UserConfig[] = [
     {
-      name: "dsh-talk/host",
+      name: "dsh-guild/host",
       entry: ["packages/host/src/index.ts"],
       outDir: "lib",
       format: ["esm", "cjs"],
@@ -49,10 +49,10 @@ export default (): UserConfig[] => {
   if (existsSync(resolve(process.cwd(), "packages/client/src/index.ts"))) {
     // 项目 logo：`public/` 不在 web shell 的静态目录里，浏览器侧拿不到这个文件，
     // 因此在构建期读成字符串注入（源码在 packages/client/public/logo.svg，
-    // 消费方见 packages/client/src/components/styles.tsx 的 talkLogoUrl）。
+    // 消费方见 packages/client/src/components/styles.tsx 的 guildLogoUrl）。
     const logoSvg = readFileSync(resolve(process.cwd(), "packages/client/public/logo.svg"), "utf8");
     configs.push({
-      name: "dsh-talk/client",
+      name: "dsh-guild/client",
       entry: { client: "packages/client/src/index.ts" },
       outDir: "lib",
       format: "cjs",
@@ -63,18 +63,18 @@ export default (): UserConfig[] => {
       clean: false,
       deps: {
         neverBundle: [...PLATFORM_MODULES],
-        // 不在平台模块表里的依赖（@dsh-talk/types、我们自己的代码等）一律内联
+        // 不在平台模块表里的依赖（@dsh-guild/types、我们自己的代码等）一律内联
         alwaysBundle: (id: string) => (PLATFORM_MODULES.includes(id as never) ? undefined : true),
       },
       define: {
         "process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV ?? "production"),
         "import.meta.env.MODE": JSON.stringify(process.env.NODE_ENV ?? "production"),
         "import.meta.env": JSON.stringify({ MODE: process.env.NODE_ENV ?? "production" }),
-        __DSH_TALK_LOGO_SVG__: JSON.stringify(logoSvg),
+        __DSH_GUILD_LOGO_SVG__: JSON.stringify(logoSvg),
       },
       outputOptions: {
         entryFileNames: "client.js",
-        banner: `window.__ModuleLoader__.load({ id: ${JSON.stringify("dsh-talk")}, factory: (require) => {`,
+        banner: `window.__ModuleLoader__.load({ id: ${JSON.stringify("dsh-guild")}, factory: (require) => {`,
         footer: "return module.exports; } });",
         intro: "var module = { exports: {} }; var exports = module.exports;",
       },

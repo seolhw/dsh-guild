@@ -6,7 +6,7 @@
 
 import type { ReactElement } from "react";
 import { useState } from "react";
-import { openInbox, useTalkState } from "../store";
+import { openInbox, useGuildState } from "../store";
 import { ChannelList } from "./ChannelList";
 import { ChatPane } from "./ChatPane";
 import { CommunitiesRail } from "./CommunitiesRail";
@@ -18,12 +18,12 @@ import { BrandLogo, LoadingHint, palette, smallText } from "./styles";
 import { ThreadCreateModal } from "./ThreadModals";
 
 /** 项目仓库地址（logo hover 卡里的唯一外链） */
-const PROJECT_REPO = "https://github.com/seolhw/dsh-talk";
+const PROJECT_REPO = "https://github.com/seolhw/dsh-guild";
 
 // ---------------- 主出口（整页三栏，无独立浮层外壳） ----------------
 
 export function HomeScreen(): ReactElement {
-  const talk = useTalkState();
+  const guild = useGuildState();
   const [showAdd, setShowAdd] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   /** 创建讨论组弹窗：由 HomeScreen 承载，频道列表菜单与会话头部共用 */
@@ -31,9 +31,9 @@ export function HomeScreen(): ReactElement {
     channelId: string;
     seed: { name: string; starterMessageId?: string } | null;
   } | null>(null);
-  const inCommunity = talk.view.communityId !== null;
+  const inCommunity = guild.view.communityId !== null;
   // 打开社区时 server 在境外、拉取详情偏慢：先给出整体加载态，避免中栏空窗
-  const communityBooting = inCommunity && talk.view.communityLoading && !talk.view.community;
+  const communityBooting = inCommunity && guild.view.communityLoading && !guild.view.community;
 
   return (
     <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
@@ -64,7 +64,7 @@ export function HomeScreen(): ReactElement {
                 marginTop: 2,
               }}
             >
-              欢迎使用 DSH-Talk 开源社区
+              欢迎使用 DSH-Guild 开源社区
             </div>
             <span style={{ ...smallText, fontSize: 14, lineHeight: 1.7 }}>
               从左侧选择一个社区开始聊天，

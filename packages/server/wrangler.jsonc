@@ -1,5 +1,5 @@
 // ================================================================
-// DSH-Talk Server Wrangler 配置（JSONC 格式，Cloudflare 推荐）
+// DSH-Guild Server Wrangler 配置（JSONC 格式，Cloudflare 推荐）
 // 与旧 wrangler.toml 等价；JSON 配置可注释、支持部分只在 JSON 提供的新特性。
 // 本地：pnpm dev (wrangler dev --ip 127.0.0.1，显式绑定 IPv4 回环，
 //       避免 localhost 解析到 ::1 导致浏览器走 127.0.0.1 连不上)
@@ -7,7 +7,7 @@
 // ================================================================
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "dsh-talk",
+  "name": "dsh-guild",
   "main": "src/worker.ts",
   "compatibility_date": "2025-01-01",
   "compatibility_flags": ["nodejs_compat"],
@@ -20,7 +20,7 @@
   },
   "routes": [
     {
-      "pattern": "dsh-talk-api.huiwang.fun",
+      "pattern": "dsh-guild-api.huiwang.fun",
       "custom_domain": true,
       "enabled": true,
       "previews_enabled": false
@@ -30,8 +30,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "dsh-talk",
-      "database_id": "38ff9809-a6fa-4c4c-9795-9b7d3695b5a6",
+      "database_name": "dsh-guild",
+      "database_id": "bf484786-2523-4e50-a81d-7bca302e9409",
       // drizzle-kit 生成的 SQL 迁移目录（wrangler d1 migrations apply 使用）
       "migrations_dir": "drizzle"
     }
@@ -40,8 +40,8 @@
   "r2_buckets": [
     {
       "binding": "R2",
-      "bucket_name": "dsh-talk-assets",
-      "preview_bucket_name": "dsh-talk-assets-local"
+      "bucket_name": "dsh-guild-assets",
+      "preview_bucket_name": "dsh-guild-assets-local"
     }
   ],
   // ---------- Durable Object：ChannelActor（一个频道 = 一个 DO 实例，实时广播） ----------
@@ -83,6 +83,6 @@
     // 生产认证对外地址（自定义域）：Better Auth 的 baseURL 固定为它，
     // 邮箱验证 / 重置链接都基于它，且不再按请求 Host 做白名单校验。
     // 自定义域有变动时必须同步更新这里，否则生产请求会因 Host 不在允许名单而 500。
-    "BETTER_AUTH_URL": "https://dsh-talk-api.huiwang.fun"
+    "BETTER_AUTH_URL": "https://dsh-guild-api.huiwang.fun"
   }
 }

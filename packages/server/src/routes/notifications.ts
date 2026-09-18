@@ -3,8 +3,8 @@
 //   只返回「我」的信；kind=invite 时附带邀请实时状态（被删/已处理后按钮禁用）。
 // ================================================================
 
-import type { InboxItem, ListNotificationsQuery } from "@dsh-talk/types/api";
-import type { NotificationData } from "@dsh-talk/types/entities";
+import type { InboxItem, ListNotificationsQuery } from "@dsh-guild/types/api";
+import type { NotificationData } from "@dsh-guild/types/entities";
 import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { compact, uniq } from "es-toolkit/array";
 import { Hono } from "hono";

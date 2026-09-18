@@ -1,9 +1,9 @@
 {
-  "name": "@dsh-talk/server",
+  "name": "@dsh-guild/server",
   "version": "0.0.1",
   "private": true,
   "packageManager": "pnpm@12.3.4",
-  "description": "DSH-Talk Cloudflare Server: Hono Worker + D1 + R2 + Durable Object",
+  "description": "DSH-Guild Cloudflare Server: Hono Worker + D1 + R2 + Durable Object",
   "type": "module",
   "scripts": {
     "predev": "node ./scripts/sync-dev-vars.mjs",
@@ -15,14 +15,14 @@
     "db:drop": "drizzle-kit drop",
     "db:check": "drizzle-kit check",
     "db:studio": "drizzle-kit studio",
-    "db:apply-local": "wrangler d1 migrations apply dsh-talk --local",
-    "db:apply-remote": "wrangler d1 migrations apply dsh-talk --remote",
+    "db:apply-local": "wrangler d1 migrations apply dsh-guild --local",
+    "db:apply-remote": "wrangler d1 migrations apply dsh-guild --remote",
     "db:reset-local": "node ./scripts/reset-local.mjs",
     "test:smoke": "node ./scripts/ws-smoke.mjs",
     "test": "echo TODO"
   },
   "dependencies": {
-    "@dsh-talk/types": "workspace:*",
+    "@dsh-guild/types": "workspace:*",
     "better-auth": "^1.7.3",
     "drizzle-orm": "^0.38.0",
     "hono": "^4.7.0",

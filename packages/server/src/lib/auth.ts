@@ -12,7 +12,7 @@
 // 程序化迁移创建，见 ensureAuthSchema()。
 // ================================================================
 
-import type { User as AppUser, ID } from "@dsh-talk/types/entities";
+import type { User as AppUser, ID } from "@dsh-guild/types/entities";
 import { betterAuth } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
 import { bearer, emailOTP, username } from "better-auth/plugins";
@@ -78,7 +78,7 @@ function buildAuthOptions(env: Env): BetterAuthOptions {
     : { allowedHosts: [...AUTH_ALLOWED_HOSTS] };
 
   return {
-    appName: "DSH-Talk",
+    appName: "DSH-Guild",
     baseURL,
     secret,
     database: env.DB,
@@ -135,7 +135,7 @@ function buildAuthOptions(env: Env): BetterAuthOptions {
     ],
     advanced: {
       // 与默认 /api/auth 一致即可；前缀定短一点避免与业务混淆
-      cookiePrefix: "dsh_talk",
+      cookiePrefix: "dsh_guild",
     },
     // 注册时客户端不提交用户名：由这里在 user.create.before 从邮箱 @ 前缀派生，
     // 并在前缀被占用时自动生成随机后缀，保证用户名唯一。

@@ -47,7 +47,7 @@ pnpm build    # host/client 产物写入 lib/
 pnpm dev      # overlay 模式：自动打包并启动 DSH Web（默认 http://127.0.0.1:3080）
 ```
 
-侧栏底部出现 **DSH-Talk（社区）** 入口即加载成功。
+侧栏底部出现 **DSH-Guild（社区）** 入口即加载成功。
 
 - `pnpm dev` = `tsdown --watch`（源码变更自动重打包 `lib/`）+ `dsh --profile <自动选择> --patch ./cordis.yml`（overlay 加载），产物更新后自动重启；
 - 只改 **client**（`packages/client`）时不会重启进程：DSH 自带的 client-hmr 会把新模块热重载进浏览器，等打包完成刷新页面即可；
@@ -59,17 +59,17 @@ pnpm dev      # overlay 模式：自动打包并启动 DSH Web（默认 http://1
 
 ```yaml
 - insert:
-    - id: "dsh-talk"
+    - id: "dsh-guild"
       name: "./lib/index.mjs"
 ```
 
-- `name` 必须指向**仓库根打包产物**（`./lib/index.mjs`），不要指向 `packages/host` —— client 半边靠「该 loader row 解析出的模块向上找最近的 `package.json`」来发现：只有根包 `dsh-talk` 同时声明了 `dsh.client` 与 `exports["./client"]`，指向 `packages/host` 只会加载 host、GUI 不出现插件 UI。
-- overlay 与「profile 里已安装的 dsh-talk」不能同时生效：两条 loader row 同 id 会冲突（启动报 duplicate loader entry id）。`pnpm dev` 会自动处理这两种情况：该 profile 里**没装**插件时直接用它；**装了**时改用一个隔离 profile（`<profile>-dev`，只含 `dsh-base` + `dsh-web-app`，不存在时自动从官方模板初始化），插件完全由 `cordis.yml` overlay 提供，因此 dev 永远跑本地构建、装不装插件都不用手动切换。要覆盖默认行为用 `DSH_PROFILE`（默认 `web`）/ `DSH_TALK_PROFILE`。
-- 后端地址的优先级：`BETTER_AUTH_URL`（仅本地开发/自托管时存在，`dsh` 从仓库根 `.env` 载入）> settings 文档里的 `talk.serverUrl`（`$DSH_HOME/settings.yaml`，发布版安装走这条，首次启动会把默认值写进去）> 代码里的默认常量。`BETTER_AUTH_URL` 只影响当次进程，**不会**写进 settings 文档，所以不会把 `127.0.0.1` 污染给安装版；不想连本地 Server 时把它指向线上地址即可（`pnpm dev` 会据此提示连的是哪一端）。
+- `name` 必须指向**仓库根打包产物**（`./lib/index.mjs`），不要指向 `packages/host` —— client 半边靠「该 loader row 解析出的模块向上找最近的 `package.json`」来发现：只有根包 `dsh-guild` 同时声明了 `dsh.client` 与 `exports["./client"]`，指向 `packages/host` 只会加载 host、GUI 不出现插件 UI。
+- overlay 与「profile 里已安装的 dsh-guild」不能同时生效：两条 loader row 同 id 会冲突（启动报 duplicate loader entry id）。`pnpm dev` 会自动处理这两种情况：该 profile 里**没装**插件时直接用它；**装了**时改用一个隔离 profile（`<profile>-dev`，只含 `dsh-base` + `dsh-web-app`，不存在时自动从官方模板初始化），插件完全由 `cordis.yml` overlay 提供，因此 dev 永远跑本地构建、装不装插件都不用手动切换。要覆盖默认行为用 `DSH_PROFILE`（默认 `web`）/ `DSH_GUILD_PROFILE`。
+- 后端地址的优先级：`BETTER_AUTH_URL`（仅本地开发/自托管时存在，`dsh` 从仓库根 `.env` 载入）> settings 文档里的 `guild.serverUrl`（`$DSH_HOME/settings.yaml`，发布版安装走这条，首次启动会把默认值写进去）> 代码里的默认常量。`BETTER_AUTH_URL` 只影响当次进程，**不会**写进 settings 文档，所以不会把 `127.0.0.1` 污染给安装版；不想连本地 Server 时把它指向线上地址即可（`pnpm dev` 会据此提示连的是哪一端）。
 
 ### 3. 开始使用
 
-1. 打开 DSH-Talk 面板 → **注册**一个邮箱账号，查收验证码完成邮箱验证；
+1. 打开 DSH-Guild 面板 → **注册**一个邮箱账号，查收验证码完成邮箱验证；
 2. **创建**第一个社区（公开），或在 **「＋ 加入」** 里输入别人的邀请码加入私有社区；
 3. 在社区里 **新建频道**（文字 / 公告 / 话题），进入频道聊天、传图、`@` 人；
 4. 忘记密码可以随时用「忘记密码？」通过验证码找回。
@@ -81,9 +81,9 @@ pnpm dev      # overlay 模式：自动打包并启动 DSH Web（默认 http://1
 ## 仓库结构
 
 ```
-dsh-talk/
+dsh-guild/
 ├── packages/
-│   ├── host/      # DSH 插件 host：注册 talk 设置 + 本地接口
+│   ├── host/      # DSH 插件 host：注册 guild 设置 + 本地接口
 │   ├── client/    # DSH 插件 client：React 聊天界面 + 连接层
 │   ├── types/     # ⭐ 全栈共享类型：实体 / REST / WebSocket / RPC 契约
 │   └── server/    # ⭐ Cloudflare Server：Hono Worker + D1 + R2 + Durable Object
@@ -105,9 +105,9 @@ pnpm dev                  # watch + overlay 启动 DSH Web
 pnpm dev:server           # 本地启动 Server
 pnpm typecheck            # 全 workspace 类型检查
 pnpm lint / pnpm check    # Biome 质量检查
-pnpm --filter @dsh-talk/server db:generate   # 改 schema 后生成迁移
-pnpm --filter @dsh-talk/server db:apply-local
-pnpm --filter @dsh-talk/server test:smoke    # WebSocket 冒烟测试（需本地 Server 已启动）
+pnpm --filter @dsh-guild/server db:generate   # 改 schema 后生成迁移
+pnpm --filter @dsh-guild/server db:apply-local
+pnpm --filter @dsh-guild/server test:smoke    # WebSocket 冒烟测试（需本地 Server 已启动）
 ```
 
 ## 约定

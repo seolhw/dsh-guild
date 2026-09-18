@@ -5,8 +5,8 @@
 //   数据隔离：广播只走 DO；消息等规范数据始终在业务 D1。
 // ================================================================
 
-import type { GetCommunityOnlineResponse } from "@dsh-talk/types/api";
-import type { ServerFrame } from "@dsh-talk/types/ws";
+import type { GetCommunityOnlineResponse } from "@dsh-guild/types/api";
+import type { ServerFrame } from "@dsh-guild/types/ws";
 import { eq } from "drizzle-orm";
 import { createDbForWorker } from "../db";
 import { channels, threads } from "../db/schema";

@@ -8,7 +8,7 @@
 // 对象 key 语义：att + newId()，单个路径段、无斜杠，可直接作 URL 参数。
 // ================================================================
 
-import type { UploadAttachmentResponse } from "@dsh-talk/types/api";
+import type { UploadAttachmentResponse } from "@dsh-guild/types/api";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { MAX_ATTACHMENT_NAME, MAX_R2_UPLOAD_BYTES } from "../constants";

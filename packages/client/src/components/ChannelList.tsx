@@ -6,10 +6,10 @@ import {
   IconBranchOutline16,
   IconChevronRightOutline14,
 } from "@deepseek-ai/dsh-client-ui-primitives";
-import type { ThreadSummary } from "@dsh-talk/types/api";
-import type { Channel } from "@dsh-talk/types/entities";
+import type { ThreadSummary } from "@dsh-guild/types/api";
+import type { Channel } from "@dsh-guild/types/entities";
 import { Fragment, type ReactElement, useState } from "react";
-import { openThread, selectChannel, useTalkState } from "../store";
+import { openThread, selectChannel, useGuildState } from "../store";
 import { activeTile, midCol, privacyBadge, railScroll, sectionTitle } from "./homeStyles";
 import { ChannelRowMenu, CommunityTools } from "./Manage";
 import { palette, Spinner } from "./styles";
@@ -20,9 +20,9 @@ export function ChannelList({
 }: {
   onCreateThread: (channelId: string) => void;
 }): ReactElement | null {
-  const talk = useTalkState();
-  const community = talk.view.community;
-  const activeChannel = talk.view.channelId;
+  const guild = useGuildState();
+  const community = guild.view.community;
+  const activeChannel = guild.view.channelId;
   if (!community) return null;
   return (
     <div style={midCol}>
@@ -99,7 +99,7 @@ export function ChannelList({
                   >
                     {ch.name}
                   </span>
-                  {active && talk.view.messagesLoading ? (
+                  {active && guild.view.messagesLoading ? (
                     <span style={{ display: "inline-flex", flex: "0 0 auto", color: palette.muted }}>
                       <Spinner size={12} />
                     </span>
@@ -120,9 +120,9 @@ export function ChannelList({
 
 /** 单个讨论组的列表行（含未读角标与私密标识），点击进入该讨论 */
 function ThreadListRow({ thread, channelId }: { thread: ThreadSummary; channelId: string }) {
-  const talk = useTalkState();
+  const guild = useGuildState();
   const [joinOpen, setJoinOpen] = useState(false);
-  const opened = talk.view.threadId === thread.id;
+  const opened = guild.view.threadId === thread.id;
   const unread = thread.unreadCount;
   const mention = thread.unreadMentions;
   const isPrivate = thread.visibility === "private";
@@ -199,11 +199,11 @@ function ThreadListRow({ thread, channelId }: { thread: ThreadSummary; channelId
 
 /** 频道下方的「讨论」分组：活跃在列，已归档折叠可展开。话题频道不在此嵌套（右侧话题板承担列表）。 */
 export function ChannelThreadsOf({ channelId }: { channelId: string }): ReactElement | null {
-  const talk = useTalkState();
+  const guild = useGuildState();
   const [archivedOpen, setArchivedOpen] = useState(false);
-  const kindOf = talk.view.community?.channels.find((c) => c.id === channelId)?.kind;
+  const kindOf = guild.view.community?.channels.find((c) => c.id === channelId)?.kind;
   if (kindOf === "forum") return null;
-  const all = talk.view.community?.threads.filter((t) => t.channelId === channelId) ?? [];
+  const all = guild.view.community?.threads.filter((t) => t.channelId === channelId) ?? [];
   const active = all.filter((t) => t.status === "active");
   const archived = all.filter((t) => t.status === "archived");
   if (active.length === 0 && archived.length === 0) return null;

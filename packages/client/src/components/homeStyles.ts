@@ -3,7 +3,7 @@
 // 由 HomeScreen 及拆分出的子组件复用，避免样式在多个文件里各写一份。
 // ================================================================
 
-import type { Community } from "@dsh-talk/types/entities";
+import type { Community } from "@dsh-guild/types/entities";
 import type { CSSProperties } from "react";
 import type { MessageItem } from "../store";
 import { palette, shadow } from "./styles";

@@ -4,7 +4,7 @@
 //   同时把对应 pending 邀请收尾、站内信标已读。
 // ================================================================
 
-import type { AcceptInviteResponse } from "@dsh-talk/types/api";
+import type { AcceptInviteResponse } from "@dsh-guild/types/api";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { communities, communityMembers, type InviteRow, invites } from "../db/schema";

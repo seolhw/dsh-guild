@@ -1,5 +1,5 @@
 {
-  // @dsh-talk/host（Node.js 侧）类型检查
+  // @dsh-guild/host（Node.js 侧）类型检查
   "compilerOptions": {
     "module": "esnext",
     "moduleResolution": "bundler",

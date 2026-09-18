@@ -1,9 +1,9 @@
 // ================================================================
-// Server REST client（浏览器端直连 @dsh-talk/server 后端）
+// Server REST client（浏览器端直连 @dsh-guild/server 后端）
 // 认证采用 Better Auth Bearer Token：
-//   - /api/auth/*：登录/注册/会话/改密等（见 @dsh-talk/types/api/auth）
+//   - /api/auth/*：登录/注册/会话/改密等（见 @dsh-guild/types/api/auth）
 //   - 业务 REST：Authorization: Bearer <session token>
-// 类型契约复用 @dsh-talk/types/api（请求）+ @dsh-talk/types/entities（实体）。
+// 类型契约复用 @dsh-guild/types/api（请求）+ @dsh-guild/types/entities（实体）。
 // ================================================================
 
 import type {
@@ -104,7 +104,7 @@ import type {
   UpdateUserRequest,
   UploadAttachmentResponse,
   VerifyEmailOTPRequest,
-} from "@dsh-talk/types/api";
+} from "@dsh-guild/types/api";
 import { pickBy } from "es-toolkit/object";
 import { isPlainObject } from "es-toolkit/predicate";
 

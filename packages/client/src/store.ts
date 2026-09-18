@@ -1,9 +1,9 @@
 // ================================================================
-// DSH-Talk client UI store（极简 listener store + React hook）
+// DSH-Guild client UI store（极简 listener store + React hook）
 // 流程：打开面板 → host 取配置 → 有 token 则 get-session + 我的社区。
 // 主屏：社区列表 ↔ 社区详情（频道） ↔ 频道消息（REST 加载 + WS 实时）。
 // 认证：邮箱/用户名登录、注册。
-// 实时：每个频道一条 TalkSocket；消息事件按当前 channelId 落到列表。
+// 实时：每个频道一条 GuildSocket；消息事件按当前 channelId 落到列表。
 // ================================================================
 
 import type {
@@ -30,7 +30,7 @@ import type {
   UpdateRoleRequest,
   UpdateThreadRequest,
   UpdateUserRequest,
-} from "@dsh-talk/types/api";
+} from "@dsh-guild/types/api";
 import {
   ALL_PERMISSIONS,
   type ChannelOverwrite,
@@ -46,9 +46,9 @@ import {
   type PermissionFlags,
   type ThreadVisibility,
   type User,
-} from "@dsh-talk/types/entities";
-import type { AgentSessionPackage, TalkSettings } from "@dsh-talk/types/rpc";
-import type { ServerFrame } from "@dsh-talk/types/ws";
+} from "@dsh-guild/types/entities";
+import type { AgentSessionPackage, GuildSettings } from "@dsh-guild/types/rpc";
+import type { ServerFrame } from "@dsh-guild/types/ws";
 import { sortBy, uniq } from "es-toolkit/array";
 import { useEffect, useReducer } from "react";
 import {
@@ -66,11 +66,11 @@ import {
   showDesktopNotification,
 } from "./reminders";
 import { ServerApiError, ServerClient } from "./server";
-import { TalkSocket } from "./ws";
+import { GuildSocket } from "./ws";
 
 // ---------------- 类型 ----------------
 
-export type TalkPhase = "booting" | "anon" | "ready" | "error";
+export type GuildPhase = "booting" | "anon" | "ready" | "error";
 
 export type MessageItem = Message & {
   author: User;
@@ -129,11 +129,11 @@ export interface ViewState {
   membersLoading: boolean;
 }
 
-export interface TalkState {
+export interface GuildState {
   open: boolean;
   busy: boolean;
-  phase: TalkPhase;
-  settings: TalkSettings | null;
+  phase: GuildPhase;
+  settings: GuildSettings | null;
   me: User | null;
   /** 当前登录账号的邮箱（个人中心只读展示；User 实体不对外暴露邮箱） */
   meEmail: string | null;
@@ -200,7 +200,7 @@ const INITIAL_VIEW: ViewState = {
   membersLoading: false,
 };
 
-const INITIAL: TalkState = {
+const INITIAL: GuildState = {
   open: false,
   busy: false,
   phase: "booting",
@@ -222,7 +222,7 @@ const INITIAL: TalkState = {
   reminderSettings: { desktop: false, dnd: false },
 };
 
-let state: TalkState = {
+let state: GuildState = {
   ...INITIAL,
   view: { ...INITIAL_VIEW },
   reminderSettings: getReminderSettings(),
@@ -230,7 +230,7 @@ let state: TalkState = {
 const listeners = new Set<() => void>();
 let toastTimer: number | null = null;
 
-function setState(patch: Partial<TalkState>): void {
+function setState(patch: Partial<GuildState>): void {
   state = { ...state, ...patch };
   for (const listener of listeners) listener();
 }
@@ -239,7 +239,7 @@ function patchView(patch: Partial<ViewState>): void {
   setState({ view: { ...state.view, ...patch } });
 }
 
-function makeServer(settings: TalkSettings): ServerClient {
+function makeServer(settings: GuildSettings): ServerClient {
   return new ServerClient(settings.serverUrl, settings.token);
 }
 
@@ -334,7 +334,7 @@ function resetInbox(): void {
 
 // ---------------- React hook ----------------
 
-export function useTalkState(): TalkState {
+export function useGuildState(): GuildState {
   const [, force] = useReducer((x: number) => x + 1, 0);
   useEffect(() => {
     listeners.add(force);
@@ -347,7 +347,7 @@ export function useTalkState(): TalkState {
 
 // ---------------- 页面生命周期（社区作为独立页面，不再依赖弹层开关） ----------------
 
-export function activateTalk(): void {
+export function activateGuild(): void {
   if (!state.open) {
     setState({ open: true });
     void refresh();
@@ -355,7 +355,7 @@ export function activateTalk(): void {
   bindPresenceListeners();
 }
 
-export function deactivateTalk(): void {
+export function deactivateGuild(): void {
   if (!state.open) return;
   closeRealtime();
   unbindPresenceListeners();
@@ -640,7 +640,7 @@ function notifyMention(item: MessageItem): void {
   const who = item.author.displayName ?? item.author.handle;
   const text = item.content.replace(/\s+/g, " ").trim();
   showDesktopNotification(
-    `${who} 在 DSH Talk 提到了你`,
+    `${who} 在 DSH Guild 提到了你`,
     text.length > 120 ? `${text.slice(0, 120)}…` : text,
   );
 }
@@ -1697,7 +1697,7 @@ export async function deleteThreadById(threadId: string): Promise<boolean> {
 
 // ---------------- 频道：选择 / 消息 / 实时 ----------------
 
-let socket: TalkSocket | null = null;
+let socket: GuildSocket | null = null;
 let reconnectTimer: number | null = null;
 
 function closeRealtime(): void {
@@ -1866,7 +1866,7 @@ export function notifyTyping(): void {
 function connectChannel(roomId: string): void {
   closeRealtime();
   const settings = state.settings;
-  socket = new TalkSocket(wsUrl(roomId), {
+  socket = new GuildSocket(wsUrl(roomId), {
     onFrame: (frame) => handleServerFrame(frame),
     onClose: (code) => {
       socket = null;

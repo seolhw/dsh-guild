@@ -1,4 +1,4 @@
-# DSH-Talk
+# DSH-Guild
 
 > 把「社区」装进 DSH —— 在 DeepSeek Harness 里直接和同好聊天、提问求助、发通知，社区内容与你的 Agent 工作区不再割裂。
 
@@ -8,7 +8,7 @@
 
 ## 使用场景：插件作者的官方社区
 
-DSH-Talk 最典型的用法，是插件作者把社区直接开在自己的 DSH 里，让用户不用跳出去就能和你沟通：
+DSH-Guild 最典型的用法，是插件作者把社区直接开在自己的 DSH 里，让用户不用跳出去就能和你沟通：
 
 - **发版公告**：建一个「公告」频道，它默认对 `@everyone` 只读，只有你（或你授权的角色）能发帖；用户进社区即订阅，更新、迁移说明、已知问题都发这里。
 - **收集反馈与报障**：用户贴图传文件描述问题；你也可以用「分享 DSH 会话」把本机复现出问题的会话打包发到社区，对方点开卡片即可克隆到本地复现，省掉一堆来回追问。
@@ -117,7 +117,7 @@ DSH-Talk 最典型的用法，是插件作者把社区直接开在自己的 DSH 
 
 ```bash
 # 从 GitHub 装进 web profile
-npx @deepseek-ai/dsh plugin --profile web add github:seolhw/dsh-talk
+npx @deepseek-ai/dsh plugin --profile web add github:seolhw/dsh-guild
 
 # 启动 DSH Web
 npx @deepseek-ai/dsh web
@@ -125,20 +125,20 @@ npx @deepseek-ai/dsh web
 
 ### 代理设置（可选）
 
-Server 地址为 `https://dsh-talk-api.huiwang.fun` ，部署在 Cloudflare 上，国内直连可能不稳定；在代理工具里让这个域名**走代理**（注意别误加进直连 / 绕过列表，也别被广告拦截规则 REJECT）即可。
+Server 地址为 `https://dsh-guild-api.huiwang.fun` ，部署在 Cloudflare 上，国内直连可能不稳定；在代理工具里让这个域名**走代理**（注意别误加进直连 / 绕过列表，也别被广告拦截规则 REJECT）即可。
 
-浏览器打开 `https://dsh-talk-api.huiwang.fun/healthz` 能返回 JSON，即说明链路已通。
+浏览器打开 `https://dsh-guild-api.huiwang.fun/healthz` 能返回 JSON，即说明链路已通。
 
 ### 首次使用
 
-1. 启动后侧栏底部出现 **DSH-Talk（社区）** 入口，即安装成功。
+1. 启动后侧栏底部出现 **DSH-Guild（社区）** 入口，即安装成功。
 2. 在面板内用邮箱注册账号，查收 6 位验证码完成验证，然后创建或加入社区。
 
 ### 升级与卸载
 
 ```bash
-npx @deepseek-ai/dsh plugin --profile web update dsh-talk    # 拉到仓库最新提交
-npx @deepseek-ai/dsh plugin --profile web remove dsh-talk    # 卸载（同时从 dsh.profile.bundles 移除）
+npx @deepseek-ai/dsh plugin --profile web update dsh-guild    # 拉到仓库最新提交
+npx @deepseek-ai/dsh plugin --profile web remove dsh-guild    # 卸载（同时从 dsh.profile.bundles 移除）
 ```
 
 > 想在本仓库里边改边跑（热重载、watch 打包），或者想自己托管 Server，见下面的「更多文档」。
@@ -150,8 +150,8 @@ npx @deepseek-ai/dsh plugin --profile web remove dsh-talk    # 卸载（同时�
 ```mermaid
 flowchart LR
     subgraph A["用户 A 的 DSH（本地）"]
-        UI["DSH-Talk 聊天面板（client）"]
-        HOST["DSH-Talk host<br/>本地配置 / 克隆会话"]
+        UI["DSH-Guild 聊天面板（client）"]
+        HOST["DSH-Guild host<br/>本地配置 / 克隆会话"]
         UI <--> HOST
     end
     subgraph C["Cloudflare（Server）"]
@@ -176,17 +176,17 @@ flowchart LR
 
 | 键 | 默认 | 说明 |
 | --- | --- | --- |
-| `serverUrl` | `https://dsh-talk-api.huiwang.fun` | Server 地址；自托管就改成自己的域名 |
+| `serverUrl` | `https://dsh-guild-api.huiwang.fun` | Server 地址；自托管就改成自己的域名 |
 | `handle` | `""` | 当前账号用户名（登录后自动写入） |
 | `token` | `""`（secret） | 会话令牌，登录后自动写入 |
 | `autoReconnect` | `true` | WebSocket 断线自动重连 |
 | `share.maxSizeMb` | `50` | 会话分享包体积上限 |
 
-首次启动会把默认的 `serverUrl` **写进 DSH 的 settings 文档**（`$DSH_HOME/settings.yaml` 的 `talk` 段），之后它就以这份配置为准：
+首次启动会把默认的 `serverUrl` **写进 DSH 的 settings 文档**（`$DSH_HOME/settings.yaml` 的 `guild` 段），之后它就以这份配置为准：
 
 ```yaml
-talk:
-  serverUrl: https://dsh-talk-api.huiwang.fun
+guild:
+  serverUrl: https://dsh-guild-api.huiwang.fun
 ```
 
 想连别的后端（自托管 / 本地 Server），在 **DSH 设置页的插件设置**里改，或直接改上面这个文件 —— 不用改代码，改过的值不会被启动流程覆盖。本地开发另有 `BETTER_AUTH_URL` 环境变量作为**临时覆盖**（见 [参与开发](docs/development.md)），它只影响当次进程、不写进 settings 文档。

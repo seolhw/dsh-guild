@@ -5,7 +5,7 @@
 //   对外：Message.reactions 是按 emoji 聚合后的数组（count + 我是否投过）。
 // ================================================================
 
-import type { MessageReaction } from "@dsh-talk/types/entities";
+import type { MessageReaction } from "@dsh-guild/types/entities";
 import { and, eq, inArray } from "drizzle-orm";
 import type { MessageReactionRow } from "../db/schema";
 import { messageReactions } from "../db/schema";

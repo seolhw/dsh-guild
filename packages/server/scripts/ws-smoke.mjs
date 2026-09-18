@@ -59,7 +59,7 @@ async function uploadAttachment(token, name, bytes, contentType) {
 /** 直读本地 D1 里该邮箱最近一条验证码（value 形如 "<otp>:<attempts>"，仅本地冒烟可用） */
 function readLocalOtp(email) {
   const out = execSync(
-    `wrangler d1 execute dsh-talk --local --json --command "SELECT value FROM verification WHERE identifier = 'email-verification-otp-${email}' ORDER BY createdAt DESC LIMIT 1"`,
+    `wrangler d1 execute dsh-guild --local --json --command "SELECT value FROM verification WHERE identifier = 'email-verification-otp-${email}' ORDER BY createdAt DESC LIMIT 1"`,
     { cwd: SERVER_DIR, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
   );
   const value = JSON.parse(out)?.[0]?.results?.[0]?.value;

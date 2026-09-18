@@ -12,7 +12,7 @@ export interface ReminderSettings {
   dnd: boolean;
 }
 
-const STORAGE_KEY = "dsh-talk.reminder-settings";
+const STORAGE_KEY = "dsh-guild.reminder-settings";
 
 const DEFAULT_SETTINGS: ReminderSettings = { desktop: false, dnd: false };
 
@@ -57,7 +57,7 @@ export function showDesktopNotification(title: string, body: string): void {
   if (!notificationsSupported() || Notification.permission !== "granted") return;
   try {
     // 同一 tag：连续 @ 只保留最新一条，避免刷屏
-    const notification = new Notification(title, { body, tag: "dsh-talk-mention" });
+    const notification = new Notification(title, { body, tag: "dsh-guild-mention" });
     notification.onclick = () => {
       window.focus();
       notification.close();

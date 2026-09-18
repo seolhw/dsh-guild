@@ -3,7 +3,7 @@
 // ================================================================
 
 import { Button, Input } from "@deepseek-ai/dsh-client-ui-primitives";
-import type { DiscoverCommunityItem } from "@dsh-talk/types/api";
+import type { DiscoverCommunityItem } from "@dsh-guild/types/api";
 import { type CSSProperties, type ReactElement, useEffect, useState } from "react";
 import {
   createCommunity,
@@ -12,7 +12,7 @@ import {
   joinPublicCommunity,
   openCommunity,
   uploadImage,
-  useTalkState,
+  useGuildState,
 } from "../store";
 import {
   AvatarPicker,
@@ -27,7 +27,7 @@ import {
   Spinner,
   smallText,
 } from "./styles";
-import { TalkModal as Modal } from "./TalkModal";
+import { GuildModal as Modal } from "./GuildModal";
 
 // 发现页的社区行（头像 + 名称/成员数 + 简介 + 加入按钮）
 const discoverRow: CSSProperties = {
@@ -101,7 +101,7 @@ export function CommunityAddModal({
   open: boolean;
   onClose: () => void;
 }): ReactElement {
-  const talk = useTalkState();
+  const guild = useGuildState();
   const [tab, setTab] = useState<"join" | "discover" | "create">("discover");
   // 加入：邀请码
   const [code, setCode] = useState("");
@@ -121,7 +121,7 @@ export function CommunityAddModal({
   const [iconBusy, setIconBusy] = useState(false);
 
   // 我已在的社区（发现页据此把「加入」换成「进入」）
-  const joinedIds = new Set(talk.communities.map((c) => c.id));
+  const joinedIds = new Set(guild.communities.map((c) => c.id));
 
   // 每次打开：重置表单，默认落在「发现」
   // biome-ignore lint/correctness/useExhaustiveDependencies: 仅在弹窗打开时拉取一次热门列表
@@ -268,22 +268,22 @@ export function CommunityAddModal({
               />
             </div>
             <div style={fieldBlock}>
-              <label htmlFor="talk-create-name" style={fieldLabel}>
+              <label htmlFor="guild-create-name" style={fieldLabel}>
                 社区名称
               </label>
               <Input
-                id="talk-create-name"
+                id="guild-create-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="社区名称"
               />
             </div>
             <div style={fieldBlock}>
-              <label htmlFor="talk-create-desc" style={fieldLabel}>
+              <label htmlFor="guild-create-desc" style={fieldLabel}>
                 简介
               </label>
               <Input
-                id="talk-create-desc"
+                id="guild-create-desc"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="简介（可选）"
@@ -403,11 +403,11 @@ export function CommunityAddModal({
           </div>
         ) : (
           <div style={fieldBlock}>
-            <label htmlFor="talk-join-code" style={fieldLabel}>
+            <label htmlFor="guild-join-code" style={fieldLabel}>
               邀请码
             </label>
             <Input
-              id="talk-join-code"
+              id="guild-join-code"
               value={code}
               onChange={(e) => setCode(e.target.value)}
               onKeyDown={(e) => {

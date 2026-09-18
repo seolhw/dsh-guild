@@ -31,7 +31,7 @@ import type {
   UpdateChannelRequest,
   UpdateCommunityRequest,
   UpdateRoleRequest,
-} from "@dsh-talk/types/api";
+} from "@dsh-guild/types/api";
 import {
   ALL_PERMISSIONS,
   type CommunityMember,
@@ -41,7 +41,7 @@ import {
   Permission,
   type PermissionFlags,
   type User,
-} from "@dsh-talk/types/entities";
+} from "@dsh-guild/types/entities";
 import { and, count, desc, eq, gt, gte, inArray, isNull, like, ne, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import {

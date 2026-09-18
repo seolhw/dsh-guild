@@ -1,7 +1,7 @@
 {
-  "name": "@dsh-talk/client",
+  "name": "@dsh-guild/client",
   "version": "0.0.1",
-  "description": "DSH-Talk 浏览器侧（React UI + Server 连接层）。源码由根包 DSH-Talk 的 tsdown 打进 lib/client.js",
+  "description": "DSH-Guild 浏览器侧（React UI + Server 连接层）。源码由根包 DSH-Guild 的 tsdown 打进 lib/client.js",
   "private": true,
   "type": "module",
   "exports": {
@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@dsh-talk/types": "workspace:*"
+    "@dsh-guild/types": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",

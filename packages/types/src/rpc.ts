@@ -4,19 +4,19 @@
 // 说明：client（浏览器）与 host（Node.js）之间**不走 remote RPC**。
 // host 在 `ctx.webServer` 注册同源 HTTP 接口，client 用 fetch 调用：
 //
-//   GET  /api/talk/config           → TalkSettings（读；BETTER_AUTH_URL 优先）
-//   POST /api/talk/config           → TalkSettings（body = Partial<TalkSettings> patch）
-//   GET  /api/talk/sessions         → HostSessionsStatus（本机可分享的 DSH 会话）
-//   GET  /api/talk/session-package  → AgentSessionPackage（?sessionId=，application/json）
-//   POST /api/talk/clone            → HostCloneResult（body = HostCloneRequest）
+//   GET  /api/guild/config           → GuildSettings（读；BETTER_AUTH_URL 优先）
+//   POST /api/guild/config           → GuildSettings（body = Partial<GuildSettings> patch）
+//   GET  /api/guild/sessions         → HostSessionsStatus（本机可分享的 DSH 会话）
+//   GET  /api/guild/session-package  → AgentSessionPackage（?sessionId=，application/json）
+//   POST /api/guild/clone            → HostCloneResult（body = HostCloneRequest）
 //
 // 实际实现在 packages/host/src/index.ts，client 侧封装在
 // packages/client/src/config.ts。请求 / 响应类型在此定义供两端共享。
 // ===============================================================
 
-// ---------- 1. 配置读写（GET|POST /api/talk/config） ----------
+// ---------- 1. 配置读写（GET|POST /api/guild/config） ----------
 
-export interface TalkSettings {
+export interface GuildSettings {
   serverUrl: string;
   /** Better Auth username 的本地回显缓存（@handle），不再参与认证 */
   handle: string;
@@ -28,13 +28,13 @@ export interface TalkSettings {
   };
 }
 
-// ---------- 2. 本地克隆（POST /api/talk/clone） ----------
+// ---------- 2. 本地克隆（POST /api/guild/clone） ----------
 
-/** POST /api/talk/clone —— 让 host 下载分享包；DSH 会话包会直接还原成本地会话 */
+/** POST /api/guild/clone —— 让 host 下载分享包；DSH 会话包会直接还原成本地会话 */
 export interface HostCloneRequest {
   /** 分享包下载地址（share 的 downloadUrl，GET /api/r2/objects/…?download=1） */
   downloadUrl: string;
-  /** 还原会话用的工作区绝对路径；缺省用用户主目录下的 DSH-Talk（不存在时自动创建，并归入同名工作区） */
+  /** 还原会话用的工作区绝对路径；缺省用用户主目录下的 DSH-Guild（不存在时自动创建，并归入同名工作区） */
   cwd?: string;
 }
 
@@ -45,7 +45,7 @@ export interface HostCloneResult {
   sessionId?: string;
 }
 
-// ---------- 3. 本地 DSH 会话（GET /api/talk/sessions + /api/talk/session-package） ----------
+// ---------- 3. 本地 DSH 会话（GET /api/guild/sessions + /api/guild/session-package） ----------
 
 /** 可供分享的本机会话（来自 DSH 会话持久化层的 header） */
 export interface LocalSessionSummary {
@@ -57,7 +57,7 @@ export interface LocalSessionSummary {
   parentSession?: string;
 }
 
-/** GET /api/talk/sessions —— 本机可分享的会话列表 */
+/** GET /api/guild/sessions —— 本机可分享的会话列表 */
 export interface HostSessionsStatus {
   sessions: LocalSessionSummary[];
 }
@@ -78,7 +78,7 @@ export interface AgentSessionPackageManifest {
   createdAt: number;
 }
 
-/** GET /api/talk/session-package?sessionId=… 返回的包体（application/json） */
+/** GET /api/guild/session-package?sessionId=… 返回的包体（application/json） */
 export interface AgentSessionPackage {
   /** 包类型标记：host 据此把下载到的包识别为会话包并还原 */
   kind: "agent-session";

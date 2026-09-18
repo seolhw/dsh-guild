@@ -2,7 +2,7 @@
 // 统一错误处理：抛出 HttpApiError → onError 中间件包装成 ApiError JSON
 // ================================================================
 
-import type { ApiErrorCode } from "@dsh-talk/types/api";
+import type { ApiErrorCode } from "@dsh-guild/types/api";
 import { HTTPException } from "hono/http-exception";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 

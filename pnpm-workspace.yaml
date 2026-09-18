@@ -6,7 +6,7 @@ packages:
 #   1. 解析新依赖时执行「发布年龄」检查（默认 1440 分钟 = 24h，防止安装刚被投毒的版本）
 #   2. 每次 install 都会对 lockfile 全表重新跑一遍供应链校验（报错形如：
 #      "Lockfile failed supply-chain policy check (N entries)")
-# DSH-Talk 依赖大量 @deepseek-ai/* 的 alpha 预发布包（发布即需安装），因此「完全禁用」：
+# DSH-Guild 依赖大量 @deepseek-ai/* 的 alpha 预发布包（发布即需安装），因此「完全禁用」：
 minimumReleaseAge: 0      # 发布年龄要求 = 0：任意版本发布后立即允许安装
 trustLockfile: true       # 信任 lockfile，跳过整表供应链复验
 # trustPolicy 默认 off（v10.21+ 新增），无需额外关闭

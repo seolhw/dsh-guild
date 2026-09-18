@@ -23,13 +23,13 @@ import type {
   ThreadMemberItem,
   UpdateThreadReadStateRequest,
   UpdateThreadRequest,
-} from "@dsh-talk/types/api";
+} from "@dsh-guild/types/api";
 import {
   Permission,
   type ThreadReadState,
   type ThreadVisibility,
   type User,
-} from "@dsh-talk/types/entities";
+} from "@dsh-guild/types/entities";
 import { and, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { THREAD_NAME_MAX, THREAD_STARTER_SNIPPET_MAX } from "../constants";

@@ -1,12 +1,12 @@
 // ================================================================
-// DSH-Talk 弹窗包装：沿用宿主 primitives 的 Modal 外观，但把遮罩与居中范围
+// DSH-Guild 弹窗包装：沿用宿主 primitives 的 Modal 外观，但把遮罩与居中范围
 // 限制在「社区」页签内容区内（不包含左侧 DSH 工作区）。
 //
 // 原因：primitives 的 Modal 通过 createPortal 挂到 document.body，其 root 为
 // position:fixed; inset:0，因此天然相对整个视口居中。这里给 dialog 追加标记
 // 类，用 :has() 选中宿主对应的 portal root，再把四条定位边改成页签内容区
 // 相对视口的偏移；偏移量由 [data-dsht-page-root] 根节点（见 components.tsx
-// 的 TalkPage）实时测得。宿主类名是构建期哈希（如 _root_w1urq_2），不可直接
+// 的 GuildPage）实时测得。宿主类名是构建期哈希（如 _root_w1urq_2），不可直接
 // 引用，故用结构选择器。
 // ================================================================
 
@@ -16,10 +16,10 @@ import { type ComponentProps, type ReactElement, useLayoutEffect } from "react";
 /** 追加到 dialog 的标记类：供 :has() 定位对应的 portal root */
 const DIALOG_MARKER = "dsht-modal-dialog";
 
-/** 页签内容区根节点的查询属性（见 components.tsx 的 TalkPage） */
+/** 页签内容区根节点的查询属性（见 components.tsx 的 GuildPage） */
 const PAGE_ROOT_SELECTOR = "[data-dsht-page-root]";
 
-const talkModalCss = `
+const guildModalCss = `
 body > div[role="presentation"]:has(> .${DIALOG_MARKER}) {
   left: var(--dsht-modal-left, 0px);
   top: var(--dsht-modal-top, 0px);
@@ -71,7 +71,7 @@ function ensureStyle(): void {
   if (styleInjected) return;
   const style = document.createElement("style");
   style.setAttribute("data-dsht-modal-css", "");
-  style.textContent = talkModalCss;
+  style.textContent = guildModalCss;
   document.head.appendChild(style);
   styleInjected = true;
 }
@@ -93,7 +93,7 @@ function syncBounds(): void {
 type BaseModalProps = ComponentProps<typeof BaseModal>;
 
 /** 替代 primitives Modal：外观一致，仅在社区页签内容区内居中 */
-export function TalkModal({ open, className, ...rest }: BaseModalProps): ReactElement {
+export function GuildModal({ open, className, ...rest }: BaseModalProps): ReactElement {
   useLayoutEffect(() => {
     if (!open) return;
     ensureStyle();

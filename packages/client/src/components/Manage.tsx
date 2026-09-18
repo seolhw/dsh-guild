@@ -34,7 +34,7 @@ import {
   Permission,
   type PermissionFlags,
   type User,
-} from "@dsh-talk/types/entities";
+} from "@dsh-guild/types/entities";
 import type { CSSProperties, ReactElement } from "react";
 import { useEffect, useState } from "react";
 import {
@@ -69,7 +69,7 @@ import {
   updateCommunity,
   updateRole,
   uploadImage,
-  useTalkState,
+  useGuildState,
 } from "../store";
 import {
   AvatarPicker,
@@ -84,7 +84,7 @@ import {
   smallText,
   Spinner,
 } from "./styles";
-import { TalkModal as Modal } from "./TalkModal";
+import { GuildModal as Modal } from "./GuildModal";
 
 /** 角色编辑器的权限位（全部位；中文名/说明/作用域来自 types 的 PERMISSION_INFO） */
 const PERMISSION_FIELDS = PERMISSION_INFO;
@@ -125,7 +125,7 @@ const dialogHint: CSSProperties = {
   lineHeight: 1.6,
 };
 
-/** hover 说明卡的容器（标记属性供 TalkModal 提升层级，避免被弹窗遮罩盖住） */
+/** hover 说明卡的容器（标记属性供 GuildModal 提升层级，避免被弹窗遮罩盖住） */
 const tipWrap: CSSProperties = {
   display: "flex",
   flexDirection: "column",
@@ -151,12 +151,12 @@ type CommunityDialog = null | "roles" | "create-channel" | "invite-user" | "invi
 
 /** 频道列表顶部的社区管理菜单（角色 / 新建频道 / 邀请 / 设置 / 退出；成员操作在聊天区右侧成员面板） */
 export function CommunityTools(): ReactElement | null {
-  const talk = useTalkState();
+  const guild = useGuildState();
   const [menuOpen, setMenuOpen] = useState(false);
   const [dialog, setDialog] = useState<CommunityDialog>(null);
   // 退出社区请求进行中（禁用入口并显示转圈）
   const [leaving, setLeaving] = useState(false);
-  const communityId = talk.view.communityId;
+  const communityId = guild.view.communityId;
   const canRoles = canManageRoles();
   const canChannel = isModerator();
   const canInvite = canInviteMembers();
@@ -231,8 +231,8 @@ export function CommunityTools(): ReactElement | null {
 
 /** 邀请码展示 / 复制（创建社区时生成、固定不变；码对所有成员可见） */
 function InviteDialog({ open, onClose }: { open: boolean; onClose: () => void }): ReactElement {
-  const talk = useTalkState();
-  const community = talk.view.community;
+  const guild = useGuildState();
+  const community = guild.view.community;
   const code = community?.inviteCode ?? "";
 
   async function copy(): Promise<void> {
@@ -249,12 +249,12 @@ function InviteDialog({ open, onClose }: { open: boolean; onClose: () => void })
       description="把邀请码发给对方：对方在「＋ 加入」里输入即可进社区。"
     >
       <div style={fieldBlock}>
-        <label htmlFor="talk-invite-code" style={fieldLabel}>
+        <label htmlFor="guild-invite-code" style={fieldLabel}>
           邀请码
         </label>
         <div style={{ display: "flex", gap: 8 }}>
           <Input
-            id="talk-invite-code"
+            id="guild-invite-code"
             readOnly
             value={code}
             aria-label="邀请码"
@@ -311,11 +311,11 @@ function InviteUserDialog({ open, onClose }: { open: boolean; onClose: () => voi
       }
     >
       <div style={fieldBlock}>
-        <label htmlFor="talk-invite-user" style={fieldLabel}>
+        <label htmlFor="guild-invite-user" style={fieldLabel}>
           @用户名 或邮箱
         </label>
         <Input
-          id="talk-invite-user"
+          id="guild-invite-user"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="如 @alice 或 alice@example.com"
@@ -328,8 +328,8 @@ function InviteUserDialog({ open, onClose }: { open: boolean; onClose: () => voi
 
 /** 社区设置（owner/admin） */
 function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void }): ReactElement {
-  const talk = useTalkState();
-  const community = talk.view.community;
+  const guild = useGuildState();
+  const community = guild.view.community;
   const owner = isOwner();
   const [name, setName] = useState(community?.name ?? "");
   const [description, setDescription] = useState(community?.description ?? "");
@@ -419,22 +419,22 @@ function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void 
           />
         </div>
         <div style={fieldBlock}>
-          <label htmlFor="talk-community-name" style={fieldLabel}>
+          <label htmlFor="guild-community-name" style={fieldLabel}>
             社区名称
           </label>
           <Input
-            id="talk-community-name"
+            id="guild-community-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="社区名称"
           />
         </div>
         <div style={fieldBlock}>
-          <label htmlFor="talk-community-desc" style={fieldLabel}>
+          <label htmlFor="guild-community-desc" style={fieldLabel}>
             简介
           </label>
           <Input
-            id="talk-community-desc"
+            id="guild-community-desc"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="一句话介绍这个社区"
@@ -661,22 +661,22 @@ function ChannelDialog({
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={fieldBlock}>
-          <label htmlFor="talk-channel-name" style={fieldLabel}>
+          <label htmlFor="guild-channel-name" style={fieldLabel}>
             频道名
           </label>
           <Input
-            id="talk-channel-name"
+            id="guild-channel-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="频道名，如 general / 公告 / 话题"
           />
         </div>
         <div style={fieldBlock}>
-          <label htmlFor="talk-channel-topic" style={fieldLabel}>
+          <label htmlFor="guild-channel-topic" style={fieldLabel}>
             主题（可选）
           </label>
           <Input
-            id="talk-channel-topic"
+            id="guild-channel-topic"
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
             placeholder="主题（显示在消息区顶部，可选）"
@@ -736,7 +736,7 @@ export function ChannelRowMenu({
   channel: Channel;
   onCreateThread: (channelId: string) => void;
 }): ReactElement | null {
-  const talk = useTalkState();
+  const guild = useGuildState();
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [overwriting, setOverwriting] = useState(false);
@@ -747,7 +747,7 @@ export function ChannelRowMenu({
   const canOverwrite = isModerator();
   const canManageChannel = (channelPermissions(channel.id) & Permission.MANAGE_CHANNEL) !== 0;
 
-  const channels = talk.view.community?.channels ?? [];
+  const channels = guild.view.community?.channels ?? [];
   const index = channels.findIndex((c) => c.id === channel.id);
   const canMoveUp = canManageChannel && index > 0;
   const canMoveDown = canManageChannel && index >= 0 && index < channels.length - 1;
@@ -865,8 +865,8 @@ export function ChannelRowMenu({
 
 /** 角色管理（MANAGE_ROLES；只能操作层级低于自己的角色）：列表 + 新建/编辑/删除 + 层级调整 */
 function RolesDialog({ open, onClose }: { open: boolean; onClose: () => void }): ReactElement {
-  const talk = useTalkState();
-  const roles = talk.view.community?.roles ?? [];
+  const guild = useGuildState();
+  const roles = guild.view.community?.roles ?? [];
   const [editing, setEditing] = useState<CommunityRole | "new" | null>(null);
   // 正在删除 / 调整层级的角色 id（禁用该行操作并转圈）
   const [busyRoleId, setBusyRoleId] = useState<ID | null>(null);
@@ -1126,11 +1126,11 @@ function RoleEditorDialog({
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={fieldBlock}>
-          <label htmlFor="talk-role-name" style={fieldLabel}>
+          <label htmlFor="guild-role-name" style={fieldLabel}>
             角色名
           </label>
           <Input
-            id="talk-role-name"
+            id="guild-role-name"
             value={everyone ? "@everyone" : name}
             disabled={everyone}
             onChange={(e) => setName(e.target.value)}
@@ -1242,8 +1242,8 @@ function ChannelOverwriteDialog({
   channel: Channel;
   onClose: () => void;
 }): ReactElement {
-  const talk = useTalkState();
-  const roles = talk.view.community?.roles ?? [];
+  const guild = useGuildState();
+  const roles = guild.view.community?.roles ?? [];
   const [overwrites, setOverwrites] = useState<ChannelOverwrite[]>([]);
   const [members, setMembers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);

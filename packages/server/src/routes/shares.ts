@@ -5,8 +5,8 @@
 // 权限：isPublic 仅对「归属公开社区」的来源置 true。
 // ================================================================
 
-import type { CreateAgentSessionShareRequest } from "@dsh-talk/types/api";
-import type { Share } from "@dsh-talk/types/entities";
+import type { CreateAgentSessionShareRequest } from "@dsh-guild/types/api";
+import type { Share } from "@dsh-guild/types/entities";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { validator } from "hono/validator";

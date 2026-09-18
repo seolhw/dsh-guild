@@ -24,7 +24,7 @@ import type {
   ToggleMessageReactionResponse,
   UpdateMessageRequest,
   UpdateReadStateRequest,
-} from "@dsh-talk/types/api";
+} from "@dsh-guild/types/api";
 import {
   type ChannelReadState,
   MESSAGE_RETRACT_MS,
@@ -33,13 +33,13 @@ import {
   type MessageReaction,
   Permission,
   type User,
-} from "@dsh-talk/types/entities";
+} from "@dsh-guild/types/entities";
 import type {
   EvtMessageDeleted,
   EvtMessageNew,
   EvtMessageReactions,
   EvtMessageUpdated,
-} from "@dsh-talk/types/ws";
+} from "@dsh-guild/types/ws";
 import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, like, lt, lte, ne, sql } from "drizzle-orm";
 import { compact, uniq } from "es-toolkit/array";
 import { clamp } from "es-toolkit/math";

@@ -1,7 +1,7 @@
 {
-  "name": "@dsh-talk/host",
+  "name": "@dsh-guild/host",
   "version": "0.0.1",
-  "description": "DSH-Talk Node.js（host）半边：注册 talk 配置 + 本地 /api/talk/config。源码由根包 DSH-Talk 的 tsdown 打进 lib/index.*",
+  "description": "DSH-Guild Node.js（host）半边：注册 guild 配置 + 本地 /api/guild/config。源码由根包 DSH-Guild 的 tsdown 打进 lib/index.*",
   "private": true,
   "type": "module",
   "exports": {
@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@dsh-talk/types": "workspace:*"
+    "@dsh-guild/types": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",

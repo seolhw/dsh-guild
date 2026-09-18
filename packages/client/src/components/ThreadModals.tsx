@@ -3,8 +3,8 @@
 // ================================================================
 
 import { Button, IconPlusOutline16, Input } from "@deepseek-ai/dsh-client-ui-primitives";
-import type { ThreadMemberItem, ThreadSummary, UpdateThreadRequest } from "@dsh-talk/types/api";
-import type { ThreadVisibility, User } from "@dsh-talk/types/entities";
+import type { ThreadMemberItem, ThreadSummary, UpdateThreadRequest } from "@dsh-guild/types/api";
+import type { ThreadVisibility, User } from "@dsh-guild/types/entities";
 import { type ReactElement, useEffect, useState } from "react";
 import {
   addThreadMember,
@@ -17,7 +17,7 @@ import {
   listThreadMembers,
   removeThreadMember,
   updateThread,
-  useTalkState,
+  useGuildState,
 } from "../store";
 import {
   Avatar,
@@ -32,7 +32,7 @@ import {
   smallText,
   Spinner,
 } from "./styles";
-import { TalkModal as Modal } from "./TalkModal";
+import { GuildModal as Modal } from "./GuildModal";
 
 /** 创建讨论组 / 话题：按来源预填标题，可设为公开或私密（可带进入密码） */
 export function ThreadCreateModal({
@@ -50,7 +50,7 @@ export function ThreadCreateModal({
   const [visibility, setVisibility] = useState<ThreadVisibility>("public");
   const [passcode, setPasscode] = useState("");
   const [busy, setBusy] = useState(false);
-  const talk = useTalkState();
+  const guild = useGuildState();
 
   // 每次打开按来源预填标题，并重置可见性
   useEffect(() => {
@@ -84,7 +84,7 @@ export function ThreadCreateModal({
     ? "以这条消息为起点：讨论组会单独成串，原消息保留在主频道。"
     : null;
   const threadable = channelId
-    ? (talk.view.community?.channels.find((c) => c.id === channelId)?.kind ?? "text")
+    ? (guild.view.community?.channels.find((c) => c.id === channelId)?.kind ?? "text")
     : "text";
   const forumMode = threadable === "forum";
   if (!open || !channelId || threadable === "announcement") return null;
@@ -116,11 +116,11 @@ export function ThreadCreateModal({
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={fieldBlock}>
-          <label htmlFor="talk-thread-name" style={fieldLabel}>
+          <label htmlFor="guild-thread-name" style={fieldLabel}>
             {forumMode ? "话题标题" : "讨论组名称"}
           </label>
           <Input
-            id="talk-thread-name"
+            id="guild-thread-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
@@ -160,11 +160,11 @@ export function ThreadCreateModal({
         </div>
         {visibility === "private" ? (
           <div style={fieldBlock}>
-            <label htmlFor="talk-thread-passcode" style={fieldLabel}>
+            <label htmlFor="guild-thread-passcode" style={fieldLabel}>
               进入密码（可选）
             </label>
             <Input
-              id="talk-thread-passcode"
+              id="guild-thread-passcode"
               value={passcode}
               onChange={(e) => setPasscode(e.target.value)}
               placeholder="留空表示仅邀请加入"
@@ -246,11 +246,11 @@ export function ThreadJoinModal({
     >
       {needsPasscode ? (
         <div style={fieldBlock}>
-          <label htmlFor="talk-thread-join-passcode" style={fieldLabel}>
+          <label htmlFor="guild-thread-join-passcode" style={fieldLabel}>
             进入密码
           </label>
           <Input
-            id="talk-thread-join-passcode"
+            id="guild-thread-join-passcode"
             type="password"
             value={passcode}
             onChange={(e) => setPasscode(e.target.value)}
@@ -331,11 +331,11 @@ export function ThreadSettingsModal({
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={fieldBlock}>
-          <label htmlFor="talk-thread-settings-name" style={fieldLabel}>
+          <label htmlFor="guild-thread-settings-name" style={fieldLabel}>
             名称
           </label>
           <Input
-            id="talk-thread-settings-name"
+            id="guild-thread-settings-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
@@ -361,11 +361,11 @@ export function ThreadSettingsModal({
         </div>
         {visibility === "private" ? (
           <div style={fieldBlock}>
-            <label htmlFor="talk-thread-settings-passcode" style={fieldLabel}>
+            <label htmlFor="guild-thread-settings-passcode" style={fieldLabel}>
               进入密码（可选）
             </label>
             <Input
-              id="talk-thread-settings-passcode"
+              id="guild-thread-settings-passcode"
               type="password"
               value={passcode}
               onChange={(e) => setPasscode(e.target.value)}
@@ -403,8 +403,8 @@ export function ThreadMembersModal({
   onClose: () => void;
   thread: ThreadSummary;
 }): ReactElement {
-  const talk = useTalkState();
-  const me = talk.me;
+  const guild = useGuildState();
+  const me = guild.me;
   const [members, setMembers] = useState<ThreadMemberItem[]>([]);
   const [candidates, setCandidates] = useState<User[]>([]);
   const [query, setQuery] = useState("");

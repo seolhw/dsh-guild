@@ -1,6 +1,6 @@
 // ================================================================
 // reset-local：清空本地 wrangler 模拟状态（D1/DO/R2 local）并重建 D1 schema。
-//   等价手动：删除 .wrangler → `wrangler d1 migrations apply dsh-talk --local`
+//   等价手动：删除 .wrangler → `wrangler d1 migrations apply dsh-guild --local`
 // 用法：pnpm db:reset-local（需先停掉 `pnpm dev`，避免文件占用/状态回写）
 // ================================================================
 
@@ -21,7 +21,7 @@ if (existsSync(stateDir)) {
 
 // 交互式确认用 'y\n' 喂给 wrangler（非 TTY 会走 fallback yes）
 const child = spawn(
-  "npx wrangler d1 migrations apply dsh-talk --local",
+  "npx wrangler d1 migrations apply dsh-guild --local",
   { cwd: pkgDir, shell: true, stdio: ["pipe", "inherit", "inherit"] },
 );
 child.stdin?.write("y\n");

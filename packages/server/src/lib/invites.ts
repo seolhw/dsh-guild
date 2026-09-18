@@ -3,7 +3,7 @@
 // 路由壳在 routes/communities.ts（创建）与 routes/invites.ts（接受/拒绝）。
 // ================================================================
 
-import type { InviteNotificationData } from "@dsh-talk/types/entities";
+import type { InviteNotificationData } from "@dsh-guild/types/entities";
 import { and, eq } from "drizzle-orm";
 import type { Db } from "../db";
 import { type CommunityRow, type InviteRow, invites, notifications } from "../db/schema";
@@ -78,7 +78,7 @@ export async function createCommunityInvite(args: {
     communityId: community.id,
     kind: "invite",
     title: `${actor.handle} 邀请你加入「${community.name}」`,
-    body: `${actor.handle} 邀请你加入 DSH-Talk 社区「${community.name}」。`,
+    body: `${actor.handle} 邀请你加入 DSH-Guild 社区「${community.name}」。`,
     data: JSON.stringify(data),
     isRead: false,
     createdAt: now,

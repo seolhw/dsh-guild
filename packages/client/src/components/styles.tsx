@@ -1,5 +1,5 @@
 // ================================================================
-// DSH-Talk 页面共享样式：全部使用 DeepSeek 宿主注入的 --dsw-* token，
+// DSH-Guild 页面共享样式：全部使用 DeepSeek 宿主注入的 --dsw-* token，
 // 随系统亮/暗主题自动切换（宿主把 "system" 解析成实际 colorScheme 后，
 // 通过 body 内联变量 + body[data-ds-dark-theme] 下发）。插件侧禁止硬编码色值。
 // 参考：dsh-client-ui-theme 的 design-platform.css token 命名。
@@ -178,7 +178,7 @@ export const listCardName: CSSProperties = {
  * 源文件是纯黑单色图形，这里统一用 CSS mask 渲染、以宿主语义文字色填充，
  * 因此亮/暗主题下都可见（详见 BrandLogo）。
  */
-export const talkLogoUrl = `data:image/svg+xml;utf8,${encodeURIComponent(__DSH_TALK_LOGO_SVG__)}`;
+export const guildLogoUrl = `data:image/svg+xml;utf8,${encodeURIComponent(__DSH_GUILD_LOGO_SVG__)}`;
 
 // ---------------- 加载指示器 ----------------
 
@@ -258,7 +258,7 @@ export function BrandLogo({ size = 34, title }: { size?: number; title?: string 
   return (
     <span
       role="img"
-      aria-label={title ?? "DSH-Talk"}
+      aria-label={title ?? "DSH-Guild"}
       title={title}
       style={{
         width: size,
@@ -266,8 +266,8 @@ export function BrandLogo({ size = 34, title }: { size?: number; title?: string 
         flex: "0 0 auto",
         display: "inline-block",
         backgroundColor: palette.text,
-        maskImage: `url("${talkLogoUrl}")`,
-        WebkitMaskImage: `url("${talkLogoUrl}")`,
+        maskImage: `url("${guildLogoUrl}")`,
+        WebkitMaskImage: `url("${guildLogoUrl}")`,
         maskRepeat: "no-repeat",
         WebkitMaskRepeat: "no-repeat",
         maskPosition: "center",

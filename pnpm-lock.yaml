@@ -140,7 +140,7 @@ importers:
 
   packages/client:
     dependencies:
-      '@dsh-talk/types':
+      '@dsh-guild/types':
         specifier: workspace:*
         version: link:../types
     devDependencies:
@@ -180,7 +180,7 @@ importers:
 
   packages/host:
     dependencies:
-      '@dsh-talk/types':
+      '@dsh-guild/types':
         specifier: workspace:*
         version: link:../types
     devDependencies:
@@ -205,7 +205,7 @@ importers:
 
   packages/server:
     dependencies:
-      '@dsh-talk/types':
+      '@dsh-guild/types':
         specifier: workspace:*
         version: link:../types
       better-auth:

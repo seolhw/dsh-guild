@@ -4,9 +4,9 @@
 // ================================================================
 
 import { HoverCard, IconPlusOutline16 } from "@deepseek-ai/dsh-client-ui-primitives";
-import type { Community } from "@dsh-talk/types/entities";
+import type { Community } from "@dsh-guild/types/entities";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
-import { backToCommunities, openCommunity, useTalkState } from "../store";
+import { backToCommunities, openCommunity, useGuildState } from "../store";
 import {
   PRIVACY_LABELS,
   rail,
@@ -46,13 +46,13 @@ function RailTip({ title, hint }: { title: string; hint?: string }): ReactElemen
 }
 
 /** 项目仓库地址（logo hover 卡里的唯一外链） */
-const PROJECT_REPO = "https://github.com/seolhw/dsh-talk";
+const PROJECT_REPO = "https://github.com/seolhw/dsh-guild";
 
 /** 左上角 logo hover 小窗：项目介绍 + 仓库地址（可点开新标签） */
 function ProjectCard(): ReactElement {
   return (
     <div style={{ ...tipWrap, maxWidth: 280, gap: 4 }} data-dsht-hover-tip>
-      <span style={tipTitle}>DSH-Talk</span>
+      <span style={tipTitle}>DSH-Guild</span>
       <span style={{...tipHint, textAlign: "justify"}}>
         把「社区」装进 DSH：在 DeepSeek Harness 里和同好聊天、提问求助、发通知。
       </span>
@@ -174,10 +174,10 @@ export function CommunitiesRail({
   onInbox: () => void;
   onOpenProfile: () => void;
 }): ReactElement {
-  const talk = useTalkState();
-  const current = talk.view.communityId;
-  const me = talk.me;
-  const unreadLabel = talk.inboxUnread > 99 ? "99+" : String(talk.inboxUnread);
+  const guild = useGuildState();
+  const current = guild.view.communityId;
+  const me = guild.me;
+  const unreadLabel = guild.inboxUnread > 99 ? "99+" : String(guild.inboxUnread);
 
   /** 统一给窄列图标包一层 hover 卡（去除原生 title，避免重复提示）。0.1.5 的
    * HoverCard 要求 copyLabel/copiedLabel：本插件不传 copyText，两个标签不会渲染。 */
@@ -214,14 +214,14 @@ export function CommunitiesRail({
           <button type="button" style={railAction} onClick={onInbox} aria-label="站内信">
             <span style={railAvatar}>
               <BellGlyph size={24} />
-              {talk.inboxUnread > 0 ? (
+              {guild.inboxUnread > 0 ? (
                 <span style={{ ...railBubble, top: -4, right: -6 }}>{unreadLabel}</span>
               ) : null}
             </span>
           </button>,
           <RailTip
             title="站内信"
-            hint={talk.inboxUnread > 0 ? `${unreadLabel} 条未读，含社区邀请` : "社区邀请与重要事件"}
+            hint={guild.inboxUnread > 0 ? `${unreadLabel} 条未读，含社区邀请` : "社区邀请与重要事件"}
           />,
         )}
         {withTip(
@@ -238,7 +238,7 @@ export function CommunitiesRail({
       </div>
       <div style={railDivider} />
       <div style={railScroll}>
-        {talk.communities.map((c) => {
+        {guild.communities.map((c) => {
           const active = c.id === current;
           const unread = c.unreadChannels;
           const mention = c.unreadMentions;
@@ -255,7 +255,7 @@ export function CommunitiesRail({
               {withTip(
                 <span style={railAvatar}>
                   <CommunityAvatar label={c.name} src={c.iconUrl} />
-                  {active && talk.view.communityLoading ? (
+                  {active && guild.view.communityLoading ? (
                     <span
                       style={{
                         ...railBubble,

@@ -2,7 +2,7 @@
 
 ## 项目结构与模块划分
 
-本仓库是 DSH-Talk 插件及其 Cloudflare 后端的 pnpm TypeScript 工作区。
+本仓库是 DSH-Guild 插件及其 Cloudflare 后端的 pnpm TypeScript 工作区。
 
 - `packages/types/src/`：共享实体、REST 接口契约、WebSocket 协议和 Host 本地接口类型；通过各层的 `index.ts` 导出公共类型。
 - `packages/host/src/`：注册 Host 侧配置与本地接口。
@@ -19,9 +19,9 @@
 - `pnpm build`：通过 tsdown 将 Host 和 Client 打包到 `lib/`。
 - `pnpm typecheck`：检查所有工作区包的类型。
 - `pnpm lint`：执行 Biome 静态检查；`pnpm format`：自动格式化。
-- `pnpm --filter @dsh-talk/server test:smoke`：在本地 Worker 启动后执行 WebSocket 冒烟测试。
+- `pnpm --filter @dsh-guild/server test:smoke`：在本地 Worker 启动后执行 WebSocket 冒烟测试。
 
-修改数据库 Schema 后，执行 `pnpm --filter @dsh-talk/server db:generate`，审查生成的 SQL，再用 `db:apply-local` 应用到本地数据库。
+修改数据库 Schema 后，执行 `pnpm --filter @dsh-guild/server db:generate`，审查生成的 SQL，再用 `db:apply-local` 应用到本地数据库。
 
 ## 代码风格与命名规范
 

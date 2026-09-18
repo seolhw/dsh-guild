@@ -6,8 +6,8 @@
 //   可进入 = 发起人 / 成员名单 / 持有社区 MANAGE_THREADS 权限者（管理员保留管理能力）。
 // ================================================================
 
-import type { ThreadSummary } from "@dsh-talk/types/api";
-import { Permission, type Thread } from "@dsh-talk/types/entities";
+import type { ThreadSummary } from "@dsh-guild/types/api";
+import { Permission, type Thread } from "@dsh-guild/types/entities";
 import { and, desc, eq, gt, inArray, ne, type SQL, sql } from "drizzle-orm";
 import { uniq } from "es-toolkit/array";
 import { THREAD_AUTO_ARCHIVE_MS } from "../constants";

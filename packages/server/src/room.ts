@@ -19,8 +19,8 @@
 // ================================================================
 
 import { DurableObject } from "cloudflare:workers";
-import { type ID, Permission } from "@dsh-talk/types/entities";
-import type { ServerFrame } from "@dsh-talk/types/ws";
+import { type ID, Permission } from "@dsh-guild/types/entities";
+import type { ServerFrame } from "@dsh-guild/types/ws";
 import { and, eq } from "drizzle-orm";
 import { createDbForWorker, type Db } from "./db";
 import { channels, threadMembers, threads } from "./db/schema";

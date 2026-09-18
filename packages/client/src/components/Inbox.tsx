@@ -4,7 +4,7 @@
 // ================================================================
 
 import { Button } from "@deepseek-ai/dsh-client-ui-primitives";
-import type { InboxItem } from "@dsh-talk/types/api";
+import type { InboxItem } from "@dsh-guild/types/api";
 import type { CSSProperties, ReactElement } from "react";
 import { useState } from "react";
 import {
@@ -13,10 +13,10 @@ import {
   closeInbox,
   declineInvite,
   markAllNotificationsRead,
-  useTalkState,
+  useGuildState,
 } from "../store";
 import { avatarGap, CommunityAvatar, palette, smallText, Spinner, timeLabel } from "./styles";
-import { TalkModal as Modal } from "./TalkModal";
+import { GuildModal as Modal } from "./GuildModal";
 
 function BellGlyph({ size = 16 }: { size?: number }): ReactElement {
   return (
@@ -53,9 +53,9 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 function InboxRow({ item }: { item: InboxItem }): ReactElement {
-  const talk = useTalkState();
+  const guild = useGuildState();
   const invite = item.invite;
-  const busy = talk.inboxBusyId !== null && invite?.id === talk.inboxBusyId;
+  const busy = guild.inboxBusyId !== null && invite?.id === guild.inboxBusyId;
   // 本行正在提交的动作：按钮据此显示对应加载文案
   const [pending, setPending] = useState<"accept" | "decline" | null>(null);
   const communityName = item.data?.communityName ?? "";
@@ -161,14 +161,14 @@ function InboxRow({ item }: { item: InboxItem }): ReactElement {
 }
 
 export function InboxDialog(): ReactElement | null {
-  const talk = useTalkState();
-  const unread = talk.inboxUnread;
-  const hasInvites = talk.notifications.length > 0;
+  const guild = useGuildState();
+  const unread = guild.inboxUnread;
+  const hasInvites = guild.notifications.length > 0;
   const [markingAll, setMarkingAll] = useState(false);
 
   return (
     <Modal
-      open={talk.inboxOpen}
+      open={guild.inboxOpen}
       onClose={() => closeInbox()}
       title="站内信"
       closeLabel="关闭"
@@ -189,7 +189,7 @@ export function InboxDialog(): ReactElement | null {
       }
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 560 }}>
-        {talk.inboxLoading ? (
+        {guild.inboxLoading ? (
           <div style={{ ...smallText, padding: "14px 4px" }}>加载中…</div>
         ) : !hasInvites ? (
           <div
@@ -204,7 +204,7 @@ export function InboxDialog(): ReactElement | null {
             当有人邀请你加入社区时，会第一时间出现在这里。
           </div>
         ) : (
-          talk.notifications.map((item) => <InboxRow key={item.id} item={item} />)
+          guild.notifications.map((item) => <InboxRow key={item.id} item={item} />)
         )}
       </div>
     </Modal>

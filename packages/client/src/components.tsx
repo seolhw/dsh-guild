@@ -1,5 +1,5 @@
 // ================================================================
-// DSH-Talk client UI：会话「社区」页签页（整页，非弹窗）
+// DSH-Guild client UI：会话「社区」页签页（整页，非弹窗）
 // 认证态 → AuthScreen；已登录 → HomeScreen（社区/频道/消息 + 实时）
 // 顶层不再自绘浮层外壳 —— 视觉 chrome（会话标题/页签/操作行）由
 // DSH 宿主头部承担，本组件只负责整页内容与身份门禁。
@@ -13,14 +13,14 @@ import { ConfirmDialog } from "./components/ConfirmDialog";
 import { HomeScreen } from "./components/HomeScreen";
 import { pageRoot, palette } from "./components/styles";
 import {
-  activateTalk,
-  deactivateTalk,
+  activateGuild,
+  deactivateGuild,
   dismissToast,
   loadCommunityOnline,
   refresh,
   refreshInboxUnread,
   setCurrentDshSession,
-  useTalkState,
+  useGuildState,
 } from "./store";
 
 /** 居中提示视图 */
@@ -33,11 +33,11 @@ function Centered({ children }: { children: ReactElement }): ReactElement {
 }
 
 function LoadingView(): ReactElement {
-  return <div style={{ color: palette.muted, fontSize: 14 }}>正在连接 DSH-Talk Server…</div>;
+  return <div style={{ color: palette.muted, fontSize: 14 }}>正在连接 DSH-Guild Server…</div>;
 }
 
 function ErrorView(): ReactElement {
-  const { error } = useTalkState();
+  const { error } = useGuildState();
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
       <div style={{ color: palette.danger, fontSize: 14 }}>连接失败：{error}</div>
@@ -103,9 +103,9 @@ function ensureHostCss(): void {
 }
 
 /** 「社区」页签页：随会话 view 挂载/卸载而激活/释放实时连接 */
-export function TalkPage(props: { sessionId?: string }): ReactElement {
-  const talk = useTalkState();
-  const ready = talk.phase === "ready";
+export function GuildPage(props: { sessionId?: string }): ReactElement {
+  const guild = useGuildState();
+  const ready = guild.phase === "ready";
   const sessionId = props.sessionId ?? null;
   // Toast 通过 body portal 渲染，不传 anchor 会相对整个视口居中；
   // 这里用社区页根节点当锚点，让横幅居中在社区内容区而不是整个网页。
@@ -117,8 +117,8 @@ export function TalkPage(props: { sessionId?: string }): ReactElement {
   }, [sessionId]);
 
   useEffect(() => {
-    activateTalk();
-    return () => deactivateTalk();
+    activateGuild();
+    return () => deactivateGuild();
   }, []);
 
   // 宿主覆盖样式：社区页自己管滚动与输入框，挂载时注入一次
@@ -135,7 +135,7 @@ export function TalkPage(props: { sessionId?: string }): ReactElement {
   }, [ready]);
 
   // 社区在线态：进入社区后拉一次，之后与站内信同节奏轮询（右侧成员面板用这一份数据）
-  const communityId = talk.view.communityId;
+  const communityId = guild.view.communityId;
   useEffect(() => {
     if (!ready || communityId === null) return;
     void loadCommunityOnline();
@@ -144,19 +144,19 @@ export function TalkPage(props: { sessionId?: string }): ReactElement {
   }, [ready, communityId]);
 
   let body: ReactElement;
-  if (talk.phase === "error") {
+  if (guild.phase === "error") {
     body = (
       <Centered>
         <ErrorView />
       </Centered>
     );
-  } else if (talk.phase === "anon") {
+  } else if (guild.phase === "anon") {
     body = (
       <Centered>
         <AuthScreen />
       </Centered>
     );
-  } else if (talk.busy || talk.phase === "booting") {
+  } else if (guild.busy || guild.phase === "booting") {
     body = (
       <Centered>
         <LoadingView />
@@ -169,8 +169,8 @@ export function TalkPage(props: { sessionId?: string }): ReactElement {
   return (
     <div ref={setPageEl} style={pageRoot} data-dsht-page-root data-conversation-composer-overlay="">
       {body}
-      {talk.toast.length > 0 ? (
-        <Toast text={talk.toast} anchor={pageEl} onDone={() => dismissToast()} />
+      {guild.toast.length > 0 ? (
+        <Toast text={guild.toast} anchor={pageEl} onDone={() => dismissToast()} />
       ) : null}
       <ConfirmDialog />
     </div>

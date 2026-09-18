@@ -2,7 +2,7 @@
 
 [← 返回 README](../README.md) ｜ 相关文档：[参与开发](./development.md)
 
-DSH-Talk 的 **Server** 是唯一的数据中心，完全自包含：Hono Worker + D1 + R2 + Durable Object，可以整套部署到你自己的 Cloudflare 账号。
+DSH-Guild 的 **Server** 是唯一的数据中心，完全自包含：Hono Worker + D1 + R2 + Durable Object，可以整套部署到你自己的 Cloudflare 账号。
 
 - 如果你只是**作为用户使用插件**，不需要看这份文档 —— 照 README 的「安装插件」连一个现成的 Server 地址即可；
 - 如果你想**自己托管**一个 Server（给团队内部用，或给公开社区用作官方服务），按下面的步骤走；
@@ -17,10 +17,10 @@ DSH-Talk 的 **Server** 是唯一的数据中心，完全自包含：Hono Worker
 npx wrangler login
 
 # D1 元数据库（记下输出的 database_id）
-npx wrangler d1 create dsh-talk
+npx wrangler d1 create dsh-guild
 
 # R2 桶（附件与分享包）
-npx wrangler r2 bucket create dsh-talk-assets
+npx wrangler r2 bucket create dsh-guild-assets
 ```
 
 把 `npx wrangler d1 create` 返回的 `database_id` 填回 [wrangler.jsonc](../packages/server/wrangler.jsonc) 的 `d1_databases[0].database_id`，并按需修改 `name`、`routes`（自定义域）与 `r2_buckets.bucket_name`。
@@ -41,8 +41,8 @@ npx wrangler secret put ADMIN_TOKEN          # 可选；配了才能执行官方
 ## 三、应用数据库迁移
 
 ```bash
-# 仓库根目录；等价于 wrangler d1 migrations apply dsh-talk --remote
-pnpm --filter @dsh-talk/server db:apply-remote
+# 仓库根目录；等价于 wrangler d1 migrations apply dsh-guild --remote
+pnpm --filter @dsh-guild/server db:apply-remote
 ```
 
 认证相关表（user / session / account / verification）无需迁移：首次访问 `/api/auth/*` 时由 Better Auth 自举创建（幂等）。

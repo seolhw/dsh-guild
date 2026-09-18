@@ -9,11 +9,11 @@ import {
   IconPlusOutline16,
   IconRefreshOutline16,
 } from "@deepseek-ai/dsh-client-ui-primitives";
-import type { ThreadSummary } from "@dsh-talk/types/api";
-import { Permission } from "@dsh-talk/types/entities";
+import type { ThreadSummary } from "@dsh-guild/types/api";
+import { Permission } from "@dsh-guild/types/entities";
 import { orderBy, partition } from "es-toolkit/array";
 import { type CSSProperties, type ReactElement, useState } from "react";
-import { channelPermissions, openThread, reloadCommunityDetail, useTalkState } from "../store";
+import { channelPermissions, openThread, reloadCommunityDetail, useGuildState } from "../store";
 import { emptyMsg, privacyBadge } from "./homeStyles";
 import { palette, smallText, Spinner, timeLabel } from "./styles";
 import { ThreadJoinModal } from "./ThreadModals";
@@ -166,11 +166,11 @@ export function ForumTopicBoard({
   channelId: string;
   onNewTopic: () => void;
 }): ReactElement | null {
-  const talk = useTalkState();
+  const guild = useGuildState();
   const [archivedOpen, setArchivedOpen] = useState(false);
   // 刷新话题列表请求进行中
   const [refreshing, setRefreshing] = useState(false);
-  const channel = talk.view.community?.channels.find((c) => c.id === channelId) ?? null;
+  const channel = guild.view.community?.channels.find((c) => c.id === channelId) ?? null;
 
   /** 重新拉取社区详情（含最新话题回复与未读） */
   async function refreshTopics(): Promise<void> {
@@ -182,7 +182,7 @@ export function ForumTopicBoard({
   if (channel?.kind !== "forum") return null;
   // 建话题 = 在该频道创建讨论组，需 CREATE_THREAD 权限位
   const canPost = (channelPermissions(channelId) & Permission.CREATE_THREAD) !== 0;
-  const all = (talk.view.community?.threads ?? []).filter((t) => t.channelId === channelId);
+  const all = (guild.view.community?.threads ?? []).filter((t) => t.channelId === channelId);
   const [activeRaw, archivedRaw] = partition(all, (t) => t.status === "active");
   const active = orderBy(activeRaw, [(t) => t.lastActivityAt], ["desc"]);
   const archived = orderBy(archivedRaw, [(t) => t.lastActivityAt], ["desc"]);

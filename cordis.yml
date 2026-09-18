@@ -1,13 +1,13 @@
-# 本地开发 overlay：把 DSH-Talk 装进 boot 树。
+# 本地开发 overlay：把 DSH-Guild 装进 boot 树。
 #
 # name 指向仓库根打包产物（lib/index.mjs）。cordis 的 client-modules 会按该
-# row 解析出的模块向上找「最近的 package.json」= 仓库根 dsh-talk 包；它声明了
+# row 解析出的模块向上找「最近的 package.json」= 仓库根 dsh-guild 包；它声明了
 # dsh.client + exports["./client"]（./lib/client.js），web shell 因此发现浏览器
 # 半边；host 半边即 lib/index.mjs（与 packages/host/src 同源）。
 #
-# 注意：name 不能指向 packages/host（最近包是 @dsh-talk/host，没有 dsh.client），
+# 注意：name 不能指向 packages/host（最近包是 @dsh-guild/host，没有 dsh.client），
 # 否则只有 host 日志、GUI 不出现插件 UI。
 # pnpm dev 由 scripts/dev.mjs 接管：tsdown --watch 自动打包，产物更新即重启本进程。
 - insert:
-    - id: "dsh-talk"
+    - id: "dsh-guild"
       name: "./lib/index.mjs"

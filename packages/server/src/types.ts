@@ -3,7 +3,7 @@
 // ================================================================
 
 import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
-import type { ID, User } from "@dsh-talk/types/entities";
+import type { ID, User } from "@dsh-guild/types/entities";
 import type { Db } from "./db";
 import type { ChannelActor } from "./room";
 

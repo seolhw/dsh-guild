@@ -1,8 +1,8 @@
 {
-  "name": "dsh-talk",
+  "name": "dsh-guild",
   "version": "0.0.1",
   "packageManager": "pnpm@12.3.4",
-  "description": "DSH-Talk",
+  "description": "DSH-Guild",
   "main": "lib/index.cjs",
   "module": "lib/index.mjs",
   "files": [
@@ -34,8 +34,8 @@
   "scripts": {
     "build": "tsdown",
     "dev": "node ./scripts/dev.mjs",
-    "dev:server": "pnpm --filter @dsh-talk/server dev",
-    "deploy:server": "pnpm --filter @dsh-talk/server run deploy",
+    "dev:server": "pnpm --filter @dsh-guild/server dev",
+    "deploy:server": "pnpm --filter @dsh-guild/server run deploy",
     "update": "npx npm-check-updates -u --target greatest --dep peer @deepseek-ai/*",
     "typecheck": "pnpm -r run typecheck && pnpm typecheck:plugin && pnpm typecheck:client",
     "typecheck:types": "tsc -p packages/types/tsconfig.json --noEmit",

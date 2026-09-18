@@ -15,7 +15,7 @@ export default defineConfig({
   out: "./drizzle",
   // drizzle-kit check / up / studio 默认连这个本地 SQLite
   dbCredentials: {
-    url: process.env.DB_SQLITE_URL ?? "./.data/talkserver.db",
+    url: process.env.DB_SQLITE_URL ?? "./.data/guildserver.db",
   },
   // 输出格式：D1 友好（不要求 SQLite 版本过高的语法）
   migrations: {

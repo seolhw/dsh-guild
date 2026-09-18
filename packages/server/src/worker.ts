@@ -1,5 +1,5 @@
 // ================================================================
-// DSH-Talk Server Worker 入口
+// DSH-Guild Server Worker 入口
 //   身份认证：Better Auth 挂载在 /api/auth/*（承载全应用登录/注册/
 //             邮箱验证/改密/找回密码/会话；Bearer token 会话）
 //   业务 REST：/api/communities|channels|messages|shares|r2（用 Better Auth 会话鉴权）
@@ -43,8 +43,8 @@ app.use("*", logger());
 // ----------------- 首页 / 根路径提示（避免被当作 404 报错） -----------------
 app.get("/", (c) =>
   c.json({
-    name: "dsh-talk-server",
-    message: "这是 DSH-Talk 项目的 API 端口",
+    name: "dsh-guild-server",
+    message: "这是 DSH-Guild 项目的 API 端口",
     endpoints: {
       healthz: "/healthz",
       auth: "/api/auth/*",

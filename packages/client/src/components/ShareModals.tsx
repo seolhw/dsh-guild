@@ -3,7 +3,7 @@
 // ================================================================
 
 import { Button, Input } from "@deepseek-ai/dsh-client-ui-primitives";
-import type { GetShareResponse } from "@dsh-talk/types/api";
+import type { GetShareResponse } from "@dsh-guild/types/api";
 import type { CSSProperties, ReactElement } from "react";
 import { useEffect, useState } from "react";
 import {
@@ -21,7 +21,7 @@ import {
 } from "../store";
 import { formatBytes } from "./homeStyles";
 import { LoadingHint, palette, pillStyle, smallText, timeLabel } from "./styles";
-import { TalkModal as Modal } from "./TalkModal";
+import { GuildModal as Modal } from "./GuildModal";
 
 /** 会话行尾状态提示：交互阻断 > 运行中 > 已完成（对齐宿主左侧会话栏口径） */
 function sessionHint(row: ShareSessionNode): string {

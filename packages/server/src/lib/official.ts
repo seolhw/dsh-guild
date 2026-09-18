@@ -9,7 +9,7 @@
 // 发现页也用同一批固定 id 判断「官方」，无需新增数据库字段。
 // ================================================================
 
-import type { ChannelKind } from "@dsh-talk/types/entities";
+import type { ChannelKind } from "@dsh-guild/types/entities";
 import { eq, inArray, type SQL, sql } from "drizzle-orm";
 import type { Db } from "../db";
 import { channels, communities, communityMembers } from "../db/schema";
@@ -55,7 +55,7 @@ export const OFFICIAL_COMMUNITIES: readonly OfficialCommunityBlueprint[] = [
   {
     key: "official",
     name: "DSH 官方",
-    description: "DSH 与 DSH-Talk 的版本公告、新手上路与反馈入口",
+    description: "DSH 与 DSH-Guild 的版本公告、新手上路与反馈入口",
     channels: [
       {
         name: "公告",
@@ -65,7 +65,7 @@ export const OFFICIAL_COMMUNITIES: readonly OfficialCommunityBlueprint[] = [
 
 发布内容约定：
 
-- **版本更新**：DSH / DSH-Talk 新版本、重要变更与兼容性说明
+- **版本更新**：DSH / DSH-Guild 新版本、重要变更与兼容性说明
 - **功能说明**：新功能怎么用，附一条操作路径
 - **故障与维护**：服务不可用、迁移通知
 
@@ -74,12 +74,12 @@ export const OFFICIAL_COMMUNITIES: readonly OfficialCommunityBlueprint[] = [
       {
         name: "新手上路",
         kind: "text",
-        topic: "第一次用 DSH-Talk？先看这里",
-        pinned: `欢迎来到 DSH-Talk 的官方社区。这份帖子说明**怎么把它用起来**。
+        topic: "第一次用 DSH-Guild？先看这里",
+        pinned: `欢迎来到 DSH-Guild 的官方社区。这份帖子说明**怎么把它用起来**。
 
 ## 1. 你现在在哪
 
-DSH-Talk 是一个跑在 DSH 面板里的社区插件：不用切窗口，就能和同好聊天、问答、收通知。左侧社区栏 →「＋」可以**发现公开社区**、用「邀请码」加入私有社区，或自己**创建**一个。
+DSH-Guild 是一个跑在 DSH 面板里的社区插件：不用切窗口，就能和同好聊天、问答、收通知。左侧社区栏 →「＋」可以**发现公开社区**、用「邀请码」加入私有社区，或自己**创建**一个。
 
 ## 2. 三件值得马上试的事
 

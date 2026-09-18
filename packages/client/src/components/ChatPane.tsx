@@ -14,7 +14,7 @@ import {
   IconShareOutline16,
   IconUserOutline16,
 } from "@deepseek-ai/dsh-client-ui-primitives";
-import { Permission } from "@dsh-talk/types/entities";
+import { Permission } from "@dsh-guild/types/entities";
 import type {
   ChangeEvent,
   ClipboardEvent,
@@ -42,7 +42,7 @@ import {
   setMessagePinned,
   setThreadArchived,
   type TypingMember,
-  useTalkState,
+  useGuildState,
 } from "../store";
 import { EmojiPopover } from "./EmojiPicker";
 import { ForumTopicBoard } from "./ForumTopicBoard";
@@ -67,7 +67,7 @@ import { MessageRow, PinGlyph, ReplyGlyph } from "./MessageRow";
 import { SearchMessagesModal } from "./SearchModals";
 import { ShareSnapshotModal } from "./ShareModals";
 import { Avatar, palette, shadow, smallText, Spinner, timeLabel } from "./styles";
-import { TalkModal } from "./TalkModal";
+import { GuildModal } from "./GuildModal";
 import { ThreadMembersModal, ThreadSettingsModal } from "./ThreadModals";
 
 /** 「张三 正在输入…」/「张三、李四 正在输入…」/「张三 等 3 人正在输入…」 */
@@ -89,7 +89,7 @@ function PinnedMessagesModal({
   open: boolean;
   onClose: () => void;
 }): ReactElement {
-  const talk = useTalkState();
+  const guild = useGuildState();
   const [items, setItems] = useState<MessageItem[] | null>(null);
   const [unpinningId, setUnpinningId] = useState<string | null>(null);
 
@@ -121,12 +121,12 @@ function PinnedMessagesModal({
   }
 
   return (
-    <TalkModal
+    <GuildModal
       open={open}
       onClose={onClose}
       title="置顶消息"
       closeLabel="关闭"
-      description={talk.view.threadId ? "本讨论组的置顶消息" : "本频道的置顶消息"}
+      description={guild.view.threadId ? "本讨论组的置顶消息" : "本频道的置顶消息"}
     >
       {items === null ? (
         <div style={{ ...smallText, fontSize: 14, padding: "10px 2px" }}>加载中…</div>
@@ -199,7 +199,7 @@ function PinnedMessagesModal({
           ))}
         </div>
       )}
-    </TalkModal>
+    </GuildModal>
   );
 }
 
@@ -211,11 +211,11 @@ export function ChatPane({
     seed: { name: string; starterMessageId?: string } | null,
   ) => void;
 }): ReactElement | null {
-  const talk = useTalkState();
-  const channelId = talk.view.channelId;
-  const community = talk.view.community;
+  const guild = useGuildState();
+  const channelId = guild.view.channelId;
+  const community = guild.view.community;
   const channel = channelId ? (community?.channels.find((c) => c.id === channelId) ?? null) : null;
-  const messageCount = talk.view.messages.length;
+  const messageCount = guild.view.messages.length;
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const channelRef = useRef<string | null>(null);
@@ -246,11 +246,11 @@ export function ChatPane({
   // 归档 / 恢复讨论组请求进行中
   const [threadBusy, setThreadBusy] = useState(false);
 
-  const threadId = talk.view.threadId;
+  const threadId = guild.view.threadId;
   const roomKey = threadId ?? channelId;
   const currentThread =
     channelId && threadId
-      ? (talk.view.community?.threads.find((t) => t.id === threadId) ?? null)
+      ? (guild.view.community?.threads.find((t) => t.id === threadId) ?? null)
       : null;
   const isThread = currentThread !== null;
   const isForumChannel = (channel?.kind ?? "text") === "forum";
@@ -259,15 +259,15 @@ export function ChatPane({
 
   /** 与 @mentionQuery 匹配的候选成员（不含自己，最多 8 个） */
   const mentionCandidates: MemberLite[] = mentionActive
-    ? talk.view.members
-        .filter((m) => m.userId !== talk.me?.id)
+    ? guild.view.members
+        .filter((m) => m.userId !== guild.me?.id)
         .filter((m) => m.handle.toLowerCase().includes(mentionQuery.toLowerCase()))
         .slice(0, 8)
     : [];
 
   /** 回复目标（composer 提示条）展示信息 */
-  const replyingPreview = talk.view.replyingTo
-    ? replyParts({ replyTo: talk.view.replyingTo })
+  const replyingPreview = guild.view.replyingTo
+    ? replyParts({ replyTo: guild.view.replyingTo })
     : null;
 
   // 权限位（含频道 overwrite 叠加）：能否发言 / 能否开讨论组 / 能否管理当前讨论组
@@ -276,7 +276,7 @@ export function ChatPane({
   const canCreateThread = (channelPerms & Permission.CREATE_THREAD) !== 0;
   /** 能否管理当前讨论组（发起人或持有社区 MANAGE_THREADS） */
   const canManageThread =
-    currentThread !== null && (currentThread.createdBy === talk.me?.id || canManageThreads());
+    currentThread !== null && (currentThread.createdBy === guild.me?.id || canManageThreads());
 
   /** 在主频道头部开一个空白讨论组（弹窗由 HomeScreen 承载） */
   function openBlankThread(): void {
@@ -347,12 +347,12 @@ export function ChatPane({
 
   // 选中「回复」后自动聚焦输入框
   useEffect(() => {
-    if (talk.view.replyingTo) composerRef.current?.focus();
-  }, [talk.view.replyingTo]);
+    if (guild.view.replyingTo) composerRef.current?.focus();
+  }, [guild.view.replyingTo]);
 
   // 定位高亮：滚动到目标消息并在 1.8s 后清除标记
   useEffect(() => {
-    const targetId = talk.view.focusMessageId;
+    const targetId = guild.view.focusMessageId;
     if (!targetId) return;
     const el = scrollRef.current?.querySelector<HTMLElement>(`[data-msg-id="${targetId}"]`);
     if (el) {
@@ -361,7 +361,7 @@ export function ChatPane({
     }
     const timer = window.setTimeout(() => clearMessageFocus(), 1800);
     return () => window.clearTimeout(timer);
-  }, [talk.view.focusMessageId]);
+  }, [guild.view.focusMessageId]);
 
   if (!channelId) return null;
 
@@ -534,8 +534,8 @@ export function ChatPane({
     }
   }
 
-  const hasOlder = talk.view.nextCursor !== null;
-  const canLoadMore = !talk.view.loadingOlder && hasOlder;
+  const hasOlder = guild.view.nextCursor !== null;
+  const canLoadMore = !guild.view.loadingOlder && hasOlder;
 
   return (
     <>
@@ -715,19 +715,19 @@ export function ChatPane({
                 gap: 6,
                 padding: "3px 8px",
                 borderRadius: 999,
-                background: talk.view.live ? palette.hover : palette.inputBg,
+                background: guild.view.live ? palette.hover : palette.inputBg,
                 border: `1px solid ${palette.border}`,
               }}
             >
               <span
                 style={{
                   ...liveDot,
-                  background: talk.view.live ? palette.success : palette.muted,
-                  boxShadow: talk.view.live ? `0 0 5px ${palette.success}` : undefined,
+                  background: guild.view.live ? palette.success : palette.muted,
+                  boxShadow: guild.view.live ? `0 0 5px ${palette.success}` : undefined,
                 }}
               />
               <span style={{ fontSize: 14, color: palette.muted }}>
-                {talk.view.live ? "实时" : "重连中…"}
+                {guild.view.live ? "实时" : "重连中…"}
               </span>
             </span>
           </span>
@@ -739,9 +739,9 @@ export function ChatPane({
           <>
             <div ref={scrollRef} onScroll={onScroll} style={messagesWrap}>
               <div ref={contentRef} style={messagesContent}>
-                {talk.view.messagesLoading ? (
+                {guild.view.messagesLoading ? (
                   <div style={{ ...emptyMsg }}>加载消息…</div>
-                ) : talk.view.messages.length === 0 ? (
+                ) : guild.view.messages.length === 0 ? (
                   <div style={{ ...emptyMsg }}>
                     <span
                       style={{
@@ -781,13 +781,13 @@ export function ChatPane({
                           size="sm"
                           variant="ghost"
                           onClick={() => void loadOlderMessages()}
-                          disabled={talk.view.loadingOlder}
+                          disabled={guild.view.loadingOlder}
                         >
-                          {talk.view.loadingOlder ? "加载中…" : "加载更早消息"}
+                          {guild.view.loadingOlder ? "加载中…" : "加载更早消息"}
                         </Button>
                       </div>
                     ) : null}
-                    {talk.view.messages.map((item) => (
+                    {guild.view.messages.map((item) => (
                       <MessageRow
                         key={item.id}
                         item={item}
@@ -812,9 +812,9 @@ export function ChatPane({
             >
               {canPost ? (
                 <>
-                  {talk.view.typing.length > 0 ? (
+                  {guild.view.typing.length > 0 ? (
                     <div style={{ ...smallText, fontSize: 14, padding: "0 4px 2px" }}>
-                      {typingLabel(talk.view.typing)}
+                      {typingLabel(guild.view.typing)}
                     </div>
                   ) : null}
                   {/* 输入整体外框：输入框在上，操作条（分享 / 表情 / 附件 + 发送）在下 */}
@@ -915,7 +915,7 @@ export function ChatPane({
                             boxShadow: shadow.menu,
                           }}
                         >
-                          {talk.view.membersLoading ? (
+                          {guild.view.membersLoading ? (
                             <div
                               style={{
                                 fontSize: 14,
@@ -1000,7 +1000,7 @@ export function ChatPane({
                           variant="ghost"
                           icon={<IconShareOutline16 />}
                           onClick={() => setShareOpen(true)}
-                          disabled={talk.view.sending}
+                          disabled={guild.view.sending}
                           aria-label="分享"
                           title="把本机 DSH 会话分享到社区"
                         />
@@ -1014,14 +1014,14 @@ export function ChatPane({
                           if (next) setMentionActive(false);
                         }}
                         onPick={insertEmoji}
-                        disabled={talk.view.sending}
+                        disabled={guild.view.sending}
                       />
                       <Button
                         size="sm"
                         variant="ghost"
                         icon={<IconPaperclipOutline16 />}
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={talk.view.sending}
+                        disabled={guild.view.sending}
                         aria-label="添加附件"
                         title="添加附件"
                       />
@@ -1029,14 +1029,14 @@ export function ChatPane({
                       <Button
                         variant="primary"
                         size="sm"
-                        icon={talk.view.sending ? <Spinner size={14} /> : <IconSendOutline16 />}
+                        icon={guild.view.sending ? <Spinner size={14} /> : <IconSendOutline16 />}
                         disabled={
-                          talk.view.sending ||
+                          guild.view.sending ||
                           (composerText.trim().length === 0 && pendingFiles.length === 0)
                         }
                         onClick={() => void submit()}
-                        aria-label={talk.view.sending ? "发送中" : "发送"}
-                        title={talk.view.sending ? "发送中…" : "发送"}
+                        aria-label={guild.view.sending ? "发送中" : "发送"}
+                        title={guild.view.sending ? "发送中…" : "发送"}
                       />
                     </div>
                     <input

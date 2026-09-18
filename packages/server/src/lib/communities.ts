@@ -2,7 +2,7 @@
 // 社区共享逻辑：communities 行 → Community 实体（路由多处复用）
 // ================================================================
 
-import type { Community } from "@dsh-talk/types/entities";
+import type { Community } from "@dsh-guild/types/entities";
 import type { CommunityRow } from "../db/schema";
 
 /** communities 行 → 对外 Community 实体 */

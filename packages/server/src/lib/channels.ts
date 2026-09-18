@@ -2,7 +2,7 @@
 // 频道共享逻辑：按 id 取频道、社区下频道列表、公告频道默认只读覆盖
 // ================================================================
 
-import { EVERYONE_TARGET_ID, Permission, type PermissionFlags } from "@dsh-talk/types/entities";
+import { EVERYONE_TARGET_ID, Permission, type PermissionFlags } from "@dsh-guild/types/entities";
 import { asc, eq, sql } from "drizzle-orm";
 import type { Db } from "../db";
 import { type ChannelRow, channelOverwrites, channels } from "../db/schema";

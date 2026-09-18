@@ -20,7 +20,7 @@
 //   6) 成员级覆盖：base = (base & ~deny) | allow
 // ================================================================
 
-import type { ChannelAccess } from "@dsh-talk/types/api";
+import type { ChannelAccess } from "@dsh-guild/types/api";
 import {
   ALL_PERMISSIONS,
   CHANNEL_OVERWRITE_PERMISSIONS,
@@ -28,7 +28,7 @@ import {
   DEFAULT_EVERYONE_PERMISSIONS,
   Permission,
   type PermissionFlags,
-} from "@dsh-talk/types/entities";
+} from "@dsh-guild/types/entities";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import type { Db } from "../db";
 import {

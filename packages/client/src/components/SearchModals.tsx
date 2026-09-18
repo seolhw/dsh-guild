@@ -3,7 +3,7 @@
 // ================================================================
 
 import { Button, Input } from "@deepseek-ai/dsh-client-ui-primitives";
-import type { SearchMessageResult } from "@dsh-talk/types/api";
+import type { SearchMessageResult } from "@dsh-guild/types/api";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { useEffect, useState } from "react";
 import {
@@ -11,11 +11,11 @@ import {
   notify,
   revealMessage,
   searchCommunityMessages,
-  useTalkState,
+  useGuildState,
 } from "../store";
 import { emptyMsg } from "./homeStyles";
 import { palette, smallText, Spinner, timeLabel } from "./styles";
-import { TalkModal as Modal } from "./TalkModal";
+import { GuildModal as Modal } from "./GuildModal";
 
 /** 时间范围筛选：前端换算成 from 时间戳（服务端按含端点区间过滤） */
 type TimeRange = "all" | "24h" | "7d" | "30d";
@@ -79,7 +79,7 @@ export function SearchMessagesModal({
   open: boolean;
   onClose: () => void;
 }): ReactElement {
-  const talk = useTalkState();
+  const guild = useGuildState();
   const [q, setQ] = useState("");
   const [channelId, setChannelId] = useState("");
   const [authorId, setAuthorId] = useState("");
@@ -151,8 +151,8 @@ export function SearchMessagesModal({
   }
 
   const keyword = q.trim();
-  const channels = talk.view.community?.channels ?? [];
-  const members = talk.view.members;
+  const channels = guild.view.community?.channels ?? [];
+  const members = guild.view.members;
   const hasFilter = channelId !== "" || authorId !== "" || range !== "all" || mentionsMe;
   return (
     <Modal

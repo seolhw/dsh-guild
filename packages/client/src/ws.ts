@@ -1,11 +1,11 @@
 // ================================================================
 // 浏览器侧 WebSocket 客户端：直连 Server /ws
-// 协议见 @dsh-talk/types/ws（ClientFrame / ServerFrame / EvtHello …）
+// 协议见 @dsh-guild/types/ws（ClientFrame / ServerFrame / EvtHello …）
 // ================================================================
 
-import type { ClientFrame, ServerFrame } from "@dsh-talk/types/ws";
+import type { ClientFrame, ServerFrame } from "@dsh-guild/types/ws";
 
-export interface TalkSocketEvents {
+export interface GuildSocketEvents {
   onOpen?: () => void;
   /** 收到任意服务端帧（含 ok/error 应答与 evt.* 推送） */
   onFrame?: (frame: ServerFrame) => void;
@@ -13,13 +13,13 @@ export interface TalkSocketEvents {
   onError?: (error: unknown) => void;
 }
 
-export class TalkSocket {
+export class GuildSocket {
   private ws: WebSocket | null = null;
   private heartbeat: number | null = null;
 
   constructor(
     private readonly url: string,
-    private readonly events: TalkSocketEvents = {},
+    private readonly events: GuildSocketEvents = {},
   ) {}
 
   get connected(): boolean {

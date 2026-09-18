@@ -95,7 +95,7 @@ function startsBlock(line: string): boolean {
 /** 链接白名单：只放行 http/https/mailto，其余（如 javascript:）按普通文本显示 */
 function safeHref(raw: string): string | null {
   try {
-    const url = new URL(raw, "https://dsh-talk.invalid");
+    const url = new URL(raw, "https://dsh-guild.invalid");
     if (url.protocol === "http:" || url.protocol === "https:" || url.protocol === "mailto:") {
       return raw;
     }

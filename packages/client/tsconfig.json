@@ -1,5 +1,5 @@
 {
-  // @dsh-talk/client（浏览器侧）类型检查
+  // @dsh-guild/client（浏览器侧）类型检查
   "compilerOptions": {
     "module": "esnext",
     "moduleResolution": "bundler",

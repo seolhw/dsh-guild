@@ -11,7 +11,7 @@ import {
   IconEditOutline16,
   IconTrashOutline16,
 } from "@deepseek-ai/dsh-client-ui-primitives";
-import { type MessageAttachment, Permission } from "@dsh-talk/types/entities";
+import { type MessageAttachment, Permission } from "@dsh-guild/types/entities";
 import type { CSSProperties, KeyboardEvent, ReactElement } from "react";
 import { useState } from "react";
 import {
@@ -28,7 +28,7 @@ import {
   setMessagePinned,
   toggleReaction,
   updateMessage,
-  useTalkState,
+  useGuildState,
 } from "../store";
 import { EmojiPopover } from "./EmojiPicker";
 import { formatBytes, msgChip, msgRow, replyParts, textAreaEdit } from "./homeStyles";
@@ -234,7 +234,7 @@ export function MessageRow({
   item: MessageItem;
   onCreateThread?: (item: MessageItem) => void;
 }): ReactElement {
-  const talk = useTalkState();
+  const guild = useGuildState();
   const [editing, setEditing] = useState(false);
   const [reactionOpen, setReactionOpen] = useState(false);
   const [draftText, setDraftText] = useState(item.content);
@@ -243,14 +243,14 @@ export function MessageRow({
   const [removing, setRemoving] = useState(false);
   const [pinning, setPinning] = useState(false);
   const [reacting, setReacting] = useState<string | null>(null);
-  const mine = talk.me !== null && item.authorId === talk.me.id;
-  const mentionedMe = (item.mentions ?? []).includes(talk.me?.id ?? "");
-  const focused = talk.view.focusMessageId === item.id;
+  const mine = guild.me !== null && item.authorId === guild.me.id;
+  const mentionedMe = (item.mentions ?? []).includes(guild.me?.id ?? "");
+  const focused = guild.view.focusMessageId === item.id;
   const allowEdit = canEditMessage(item);
   const allowRetract = canRetractMessage(item);
   const quote = item.replyTo ? replyParts(item) : null;
   // 该消息所在频道的权限位：能否回复 / 能否从这条消息开讨论组
-  const channelOf = talk.view.community?.channels.find((c) => c.id === item.channelId);
+  const channelOf = guild.view.community?.channels.find((c) => c.id === item.channelId);
   const channelPerms = channelOf ? channelPermissions(channelOf.id) : 0;
   const canReplyHere = (channelPerms & Permission.SEND_MESSAGES) !== 0;
   // 只能从文字频道主频道的直接消息开临时讨论（讨论组/话题内的消息不能再套娃）
@@ -424,7 +424,7 @@ export function MessageRow({
             style={textAreaEdit}
           />
         ) : (
-          <Markdown text={item.content} selfHandle={talk.me?.handle ?? ""} />
+          <Markdown text={item.content} selfHandle={guild.me?.handle ?? ""} />
         )}
         <AttachmentList attachments={item.attachments ?? []} />
         {item.shareCard ? <ShareCardView card={item.shareCard} /> : null}

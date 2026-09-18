@@ -15,10 +15,10 @@ import {
   updateUserAvatar,
   updateUserNickname,
   updateUserUsername,
-  useTalkState,
+  useGuildState,
 } from "../store";
 import { AvatarPicker, fieldLabel, palette, smallText, Spinner } from "./styles";
-import { TalkModal as Modal } from "./TalkModal";
+import { GuildModal as Modal } from "./GuildModal";
 
 /** 只读信息行：左侧标签，右侧值（单行省略） */
 const infoRow: CSSProperties = {
@@ -103,8 +103,8 @@ export function ProfileModal({
   open: boolean;
   onClose: () => void;
 }): ReactElement | null {
-  const talk = useTalkState();
-  const me = talk.me;
+  const guild = useGuildState();
+  const me = guild.me;
   const [nickname, setNickname] = useState("");
   const [nicknameBusy, setNicknameBusy] = useState(false);
   const [username, setUsername] = useState("");
@@ -243,12 +243,12 @@ export function ProfileModal({
             />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <label htmlFor="talk-profile-nickname" style={fieldLabel}>
+            <label htmlFor="guild-profile-nickname" style={fieldLabel}>
               昵称
             </label>
             <div style={{ display: "flex", gap: 8 }}>
               <Input
-                id="talk-profile-nickname"
+                id="guild-profile-nickname"
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
                 onKeyDown={(e) => {
@@ -273,12 +273,12 @@ export function ProfileModal({
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <label htmlFor="talk-profile-username" style={fieldLabel}>
+            <label htmlFor="guild-profile-username" style={fieldLabel}>
               用户名
             </label>
             <div style={{ display: "flex", gap: 8 }}>
               <Input
-                id="talk-profile-username"
+                id="guild-profile-username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 maxLength={16}
@@ -305,7 +305,7 @@ export function ProfileModal({
           <div style={infoRow}>
             <span style={{ ...smallText, fontSize: 14, flex: "0 0 auto" }}>邮箱</span>
             <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-              <span style={infoValue}>{talk.meEmail ?? "—"}</span>
+              <span style={infoValue}>{guild.meEmail ?? "—"}</span>
               <span
                 style={{
                   flex: "0 0 auto",
@@ -368,16 +368,16 @@ export function ProfileModal({
           <ToggleRow
             label="桌面通知"
             hint="页面在后台时，当前房间有人 @ 我会弹系统通知（需浏览器授权）"
-            checked={talk.reminderSettings.desktop}
+            checked={guild.reminderSettings.desktop}
             onToggle={() =>
-              void updateReminderSettings({ desktop: !talk.reminderSettings.desktop })
+              void updateReminderSettings({ desktop: !guild.reminderSettings.desktop })
             }
           />
           <ToggleRow
             label="免打扰"
             hint="开启后只保留未读角标，不再弹桌面通知"
-            checked={talk.reminderSettings.dnd}
-            onToggle={() => void updateReminderSettings({ dnd: !talk.reminderSettings.dnd })}
+            checked={guild.reminderSettings.dnd}
+            onToggle={() => void updateReminderSettings({ dnd: !guild.reminderSettings.dnd })}
           />
         </div>
       </div>

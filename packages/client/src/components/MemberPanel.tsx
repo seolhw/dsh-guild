@@ -14,8 +14,8 @@ import {
   IconTrashOutline16,
   Menu,
 } from "@deepseek-ai/dsh-client-ui-primitives";
-import type { ChannelOnlineMember, CommunityBanItem } from "@dsh-talk/types/api";
-import type { ID } from "@dsh-talk/types/entities";
+import type { ChannelOnlineMember, CommunityBanItem } from "@dsh-guild/types/api";
+import type { ID } from "@dsh-guild/types/entities";
 import type { CSSProperties, ReactElement } from "react";
 import { useEffect, useState } from "react";
 import {
@@ -36,7 +36,7 @@ import {
   setMemberRoles,
   transferOwner,
   unbanUser,
-  useTalkState,
+  useGuildState,
 } from "../store";
 import { memberPanel, memberPanelCss } from "./homeStyles";
 import { MemberRolesDialog } from "./Manage";
@@ -186,10 +186,10 @@ export function MemberPanel({
   onMention: (handle: string) => void;
   onClose: () => void;
 }): ReactElement {
-  const talk = useTalkState();
-  const me = talk.me;
-  const community = talk.view.community;
-  const communityId = talk.view.communityId;
+  const guild = useGuildState();
+  const me = guild.me;
+  const community = guild.view.community;
+  const communityId = guild.view.communityId;
   const roles = community?.roles ?? [];
   const owner = isOwner();
   const canRoles = canManageRoles();
@@ -223,7 +223,7 @@ export function MemberPanel({
   }, [canBan]);
 
   const presenceOf = new Map<ID, ChannelOnlineMember["presence"]>(
-    talk.view.communityOnlineMembers.map((m) => [m.userId, m.presence]),
+    guild.view.communityOnlineMembers.map((m) => [m.userId, m.presence]),
   );
   /** 在线 = 快照里 presence 非 offline（离开也算在线，只是状态不同） */
   const isActive = (userId: ID): boolean => {
@@ -233,8 +233,8 @@ export function MemberPanel({
   const presenceStatus = (userId: ID): ChannelOnlineMember["presence"] =>
     presenceOf.get(userId) ?? "offline";
   const byHandle = (a: MemberLite, b: MemberLite): number => a.handle.localeCompare(b.handle);
-  const online = talk.view.members.filter((m) => isActive(m.userId)).sort(byHandle);
-  const offline = talk.view.members.filter((m) => !isActive(m.userId)).sort(byHandle);
+  const online = guild.view.members.filter((m) => isActive(m.userId)).sort(byHandle);
+  const offline = guild.view.members.filter((m) => !isActive(m.userId)).sort(byHandle);
 
   /** 写操作后重拉成员缓存（面板与 @ 补全共用 view.members） */
   async function reload(): Promise<void> {
@@ -387,7 +387,7 @@ export function MemberPanel({
             portal
           />
         </div>
-        {talk.view.membersLoading && talk.view.members.length === 0 ? (
+        {guild.view.membersLoading && guild.view.members.length === 0 ? (
           <LoadingHint text="加载成员…" />
         ) : (
           <>

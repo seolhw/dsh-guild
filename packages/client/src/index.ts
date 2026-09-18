@@ -1,10 +1,10 @@
 // ================================================================
-// DSH-Talk 浏览器侧（client）入口
+// DSH-Guild 浏览器侧（client）入口
 //  注册为 `conversation.view` 页签（与官方「对话 / 轨迹」等页签平行）：
 //  - 宿主会话顶栏会出现「社区」页签，点击后主内容区整页展示社区 UI，
 //    不再是浮层/弹窗。
 //  - 页签位置跟随官方 tab 列表（会话头部），不占用侧栏底部设置区。
-// 数据流：host 配置（/api/talk/config）→ Server REST（身份/社区列表）
+// 数据流：host 配置（/api/guild/config）→ Server REST（身份/社区列表）
 // 槽位类型合并由 ./augment 拉入，见该文件注释。
 //
 // 注册写法对齐官方 ui-conversation 对 conversation.view 的注册：
@@ -15,7 +15,7 @@
 
 import type { Context as ClientContext } from "@deepseek-ai/cordis";
 import "./augment";
-import { TalkPage } from "./components";
+import { GuildPage } from "./components";
 import {
   bindSessionOpener,
   bindSessionTree,
@@ -221,17 +221,17 @@ export function apply(ctx: ClientContext): void {
       ctx.slots.register(
         {
           name: "conversation.view",
-          id: "dsh-talk",
+          id: "dsh-guild",
           order: 20,
           label: "社区",
-          registrant: "dsh-talk",
+          registrant: "dsh-guild",
         },
-        TalkPage,
+        GuildPage,
       ),
     );
   } catch (error) {
     // 注册失败只降级为诊断输出，绝不让插件 fiber 崩掉整个 GUI。
-    console.error("[dsh-talk] slot register failed:", error);
+    console.error("[dsh-guild] slot register failed:", error);
   }
 
   // 预取一次配置，让社区页打开时身份状态是温的

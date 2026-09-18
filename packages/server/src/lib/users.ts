@@ -5,7 +5,7 @@
 // ================================================================
 
 import type { D1Database } from "@cloudflare/workers-types";
-import type { ID, User } from "@dsh-talk/types/entities";
+import type { ID, User } from "@dsh-guild/types/entities";
 import { uniq } from "es-toolkit/array";
 import { HttpApiError } from "./errors";
 

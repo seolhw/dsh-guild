@@ -14,7 +14,7 @@ import {
   requestPasswordResetOtp,
   resendVerificationOtp,
   resetPasswordWithOtp,
-  useTalkState,
+  useGuildState,
   verifyOtp,
 } from "../store";
 import { BrandLogo, fieldLabel, palette, pillGroup } from "./styles";
@@ -74,7 +74,7 @@ function errorMessage(err: unknown): string {
 function BrandHeader({ title, subtitle }: { title: string; subtitle: string }): ReactElement {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <BrandLogo size={42} title="DSH-Talk 社区" />
+      <BrandLogo size={42} title="DSH-Guild 社区" />
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <div style={{ fontSize: 16, fontWeight: 650, lineHeight: 1.2 }}>{title}</div>
         <div style={{ ...fieldHint, fontSize: 14 }}>{subtitle}</div>
@@ -261,9 +261,9 @@ function ForgotPasswordCard({
               <div style={{ fontSize: 14, color: palette.muted, lineHeight: 1.6 }}>
                 输入注册邮箱，我们会向它发送一封 6 位验证码邮件。
               </div>
-              <Field label="邮箱" htmlFor="talk-reset-email">
+              <Field label="邮箱" htmlFor="guild-reset-email">
                 <Input
-                  id="talk-reset-email"
+                  id="guild-reset-email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
@@ -280,9 +280,9 @@ function ForgotPasswordCard({
                 验证码已发送至 <strong style={{ color: palette.text }}>{email}</strong>，5
                 分钟内有效；若未收到，请检查垃圾邮件；若该邮箱未注册则不会收到邮件。
               </div>
-              <Field label="验证码" htmlFor="talk-reset-otp">
+              <Field label="验证码" htmlFor="guild-reset-otp">
                 <Input
-                  id="talk-reset-otp"
+                  id="guild-reset-otp"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
                   placeholder="6 位数字"
@@ -294,7 +294,7 @@ function ForgotPasswordCard({
               </Field>
               <Field
                 label="新密码"
-                htmlFor="talk-reset-password"
+                htmlFor="guild-reset-password"
                 right={
                   <PasswordToggle
                     shown={showPassword}
@@ -303,7 +303,7 @@ function ForgotPasswordCard({
                 }
               >
                 <Input
-                  id="talk-reset-password"
+                  id="guild-reset-password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   type={showPassword ? "text" : "password"}
@@ -364,7 +364,7 @@ function ForgotPasswordCard({
 }
 
 export function AuthScreen(): ReactElement {
-  const talk = useTalkState();
+  const guild = useGuildState();
   const [mode, setMode] = useState<Mode>("login");
   const [name, setName] = useState("");
   const [account, setAccount] = useState("");
@@ -378,9 +378,9 @@ export function AuthScreen(): ReactElement {
   const [otpError, setOtpError] = useState("");
   const [forgot, setForgot] = useState(false);
 
-  const pendingEmail = talk.pendingEmail;
+  const pendingEmail = guild.pendingEmail;
   // 未验证账号登录被拦截时也会进入验证码界面，文案需与注册后验证区分
-  const verifyFromLogin = talk.pendingEmailReason === "login";
+  const verifyFromLogin = guild.pendingEmailReason === "login";
 
   useEffect(() => {
     if (pendingEmail) {
@@ -463,9 +463,9 @@ export function AuthScreen(): ReactElement {
           onSubmit={(e) => void verify(e)}
           style={{ display: "flex", flexDirection: "column", gap: 12 }}
         >
-          <Field label="验证码" htmlFor="talk-otp">
+          <Field label="验证码" htmlFor="guild-otp">
             <Input
-              id="talk-otp"
+              id="guild-otp"
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
               placeholder="6 位数字"
@@ -517,7 +517,7 @@ export function AuthScreen(): ReactElement {
 
   return (
     <div style={card}>
-      <BrandHeader title="DSH-Talk 社区" subtitle="登录后参与社区讨论" />
+      <BrandHeader title="DSH-Guild 社区" subtitle="登录后参与社区讨论" />
 
       <Segmented<Mode>
         value={mode}
@@ -532,9 +532,9 @@ export function AuthScreen(): ReactElement {
         onSubmit={(e) => void submit(e)}
         style={{ display: "flex", flexDirection: "column", gap: 12 }}
       >
-        <Field label="邮箱" htmlFor="talk-account">
+        <Field label="邮箱" htmlFor="guild-account">
           <Input
-            id="talk-account"
+            id="guild-account"
             value={account}
             onChange={(e) => setAccount(e.target.value)}
             placeholder="you@example.com"
@@ -545,9 +545,9 @@ export function AuthScreen(): ReactElement {
         </Field>
 
         {mode === "register" ? (
-          <Field label="昵称（可选）" htmlFor="talk-name">
+          <Field label="昵称（可选）" htmlFor="guild-name">
             <Input
-              id="talk-name"
+              id="guild-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="显示名，留空用邮箱前缀"
@@ -557,7 +557,7 @@ export function AuthScreen(): ReactElement {
 
         <Field
           label="密码"
-          htmlFor="talk-password"
+          htmlFor="guild-password"
           right={
             <PasswordToggle
               shown={showPassword}
@@ -566,7 +566,7 @@ export function AuthScreen(): ReactElement {
           }
         >
           <Input
-            id="talk-password"
+            id="guild-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             type={showPassword ? "text" : "password"}
@@ -593,7 +593,7 @@ export function AuthScreen(): ReactElement {
 
         {error ? <ErrorBanner message={error} /> : null}
 
-        {talk.busy && !busy ? (
+        {guild.busy && !busy ? (
           <div style={{ ...fieldHint, color: palette.muted }}>正在连接 Server…</div>
         ) : null}
 

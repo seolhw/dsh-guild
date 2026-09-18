@@ -40,7 +40,7 @@ function runDetached(request: Request | undefined, task: Promise<unknown>): void
 // ---------- Resend ----------
 
 // Resend 发件地址。建议换成你在 Resend 已验证的域名邮箱；
-const EMAIL_FROM = "DSH-Talk <onboarding@huiwang.fun>";
+const EMAIL_FROM = "DSH-Guild <onboarding@huiwang.fun>";
 
 function resendKey(env: Env): string | null {
   return env.RESEND_API_KEY?.trim() || null;
@@ -88,7 +88,7 @@ export function dispatchVerificationEmail(
     request,
     sendMail(env, {
       to: user.email,
-      subject: "DSH-Talk：验证你的邮箱",
+      subject: "DSH-Guild：验证你的邮箱",
       text: `你好${user.name ? ` ${user.name}` : ""}，点击以下链接完成邮箱验证：\n${url}\n\n如果这不是你的操作，请忽略本邮件。`,
     }),
   );
@@ -104,7 +104,7 @@ export function dispatchResetPasswordEmail(
     request,
     sendMail(env, {
       to: user.email,
-      subject: "DSH-Talk：重置你的密码",
+      subject: "DSH-Guild：重置你的密码",
       text: `你好${user.name ? ` ${user.name}` : ""}，点击以下链接重置密码：\n${url}\n\n如果这不是你的操作，请忽略本邮件。`,
     }),
   );
@@ -130,10 +130,10 @@ export function dispatchVerificationOTPEmail(
     request,
     sendMail(env, {
       to: email,
-      subject: isReset ? "DSH-Talk：重置密码验证码" : "DSH-Talk：你的邮箱验证码",
+      subject: isReset ? "DSH-Guild：重置密码验证码" : "DSH-Guild：你的邮箱验证码",
       text: isReset
-        ? `你正在重置 DSH-Talk 账号的密码，验证码是：${otp}\n\n5 分钟内有效。如果这不是你的操作，请忽略本邮件，密码不会改变。`
-        : `你的 DSH-Talk 邮箱验证码是：${otp}\n\n5 分钟内有效。如果不是你本人操作，请忽略本邮件。`,
+        ? `你正在重置 DSH-Guild 账号的密码，验证码是：${otp}\n\n5 分钟内有效。如果这不是你的操作，请忽略本邮件，密码不会改变。`
+        : `你的 DSH-Guild 邮箱验证码是：${otp}\n\n5 分钟内有效。如果不是你本人操作，请忽略本邮件。`,
     }),
   );
 }
@@ -157,11 +157,11 @@ export function dispatchInvitationEmail(
     request,
     sendMail(env, {
       to: mail.to,
-      subject: `${mail.inviter} 邀请你加入 DSH-Talk 社区「${mail.communityName}」`,
+      subject: `${mail.inviter} 邀请你加入 DSH-Guild 社区「${mail.communityName}」`,
       text:
-        `${mail.inviter} 邀请你加入 DSH-Talk 社区「${mail.communityName}」。\n\n` +
+        `${mail.inviter} 邀请你加入 DSH-Guild 社区「${mail.communityName}」。\n\n` +
         `加入方式：\n` +
-        `1. 打开 DSH-Talk 的「社区」面板，点击左上角铃铛查看站内信，点「加入」即可；\n` +
+        `1. 打开 DSH-Guild 的「社区」面板，点击左上角铃铛查看站内信，点「加入」即可；\n` +
         (codeHint ? `${codeHint}\n` : "") +
         `\n如果你不认识对方，忽略本邮件即可。`,
     }),

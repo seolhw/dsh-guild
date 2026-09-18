@@ -1,8 +1,8 @@
 // ================================================================
-// DSH-Talk host（Node.js）
-//  1. 注册 `talk` 配置命名空间（ctx.settings）：serverUrl / handle / token …
-//  2. 挂本地接口 GET|POST /api/talk/config，供浏览器端（client）同源调用
-//     语义与 @dsh-talk/types/rpc 的 TalkSettings 一致（GET 读 / POST patch）
+// DSH-Guild host（Node.js）
+//  1. 注册 `guild` 配置命名空间（ctx.settings）：serverUrl / handle / token …
+//  2. 挂本地接口 GET|POST /api/guild/config，供浏览器端（client）同源调用
+//     语义与 @dsh-guild/types/rpc 的 GuildSettings 一致（GET 读 / POST patch）
 // ================================================================
 
 import { mkdirSync } from "node:fs";
@@ -18,26 +18,26 @@ import type {
   HostCloneResult,
   HostSessionsStatus,
   LocalSessionSummary,
-  TalkSettings,
-} from "@dsh-talk/types/rpc";
+  GuildSettings,
+} from "@dsh-guild/types/rpc";
 import { orderBy } from "es-toolkit/array";
 import { isPlainObject } from "es-toolkit/predicate";
 
-export const name = "dsh-talk";
+export const name = "dsh-guild";
 
 /** 需要 DSH 内置 service 就绪后才启动（会话分享依赖 sessions / sessionPersistence）。 */
 export const inject = ["settings", "webServer", "sessions", "sessionPersistence"];
 
 /** settings 命名空间：0.1.5 起 register() 直接收小写连字符字符串，不再需要 brand 包装 */
-const TALK_NS = "talk";
+const GUILD_NS = "guild";
 
-// ---------- talk 配置 schema（默认值 + 用户层覆盖） ----------
+// ---------- guild 配置 schema（默认值 + 用户层覆盖） ----------
 
 /**
  * 发布版默认后端：插件的兜底指向（作者部署的公共 Server）。用户改成自己的
- * 自托管地址只需改 settings 文档（~/.dsh/settings.yaml 的 talk 段）或设置页。
+ * 自托管地址只需改 settings 文档（~/.dsh/settings.yaml 的 guild 段）或设置页。
  */
-const PRODUCTION_SERVER_URL = "https://dsh-talk-api.huiwang.fun";
+const PRODUCTION_SERVER_URL = "https://dsh-guild-api.huiwang.fun";
 
 /**
  * schema 默认值：本地开发用仓库根 .env 的 BETTER_AUTH_URL（`dsh web` 启动时已载入），
@@ -45,8 +45,8 @@ const PRODUCTION_SERVER_URL = "https://dsh-talk-api.huiwang.fun";
  */
 const DEFAULT_SERVER_URL = process.env.BETTER_AUTH_URL?.trim() || PRODUCTION_SERVER_URL;
 
-/** 显式标注成 TalkSettings：register() 的 T 由 schema 推导，标注后与下游 scope 类型一致 */
-const talkSettingsSchema: z<TalkSettings> = z.object({
+/** 显式标注成 GuildSettings：register() 的 T 由 schema 推导，标注后与下游 scope 类型一致 */
+const guildSettingsSchema: z<GuildSettings> = z.object({
   serverUrl: z.string().default(DEFAULT_SERVER_URL),
   handle: z.string().default(""),
   /** secret：settings 文档 redact 时会被剥掉，不会随描述接口外泄 */
@@ -86,9 +86,9 @@ const errorOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
 // 允许客户端 patch 的字段（白名单 + 粗校验，防止把 settings 文档写坏）
-function sanitizePatch(raw: unknown): Partial<TalkSettings> {
+function sanitizePatch(raw: unknown): Partial<GuildSettings> {
   if (!isPlainObject(raw)) return {};
-  const patch: Partial<TalkSettings> = {};
+  const patch: Partial<GuildSettings> = {};
   const { serverUrl, handle, token, autoReconnect, share } = raw;
   if (typeof serverUrl === "string" && serverUrl.length > 0) patch.serverUrl = serverUrl;
   if (typeof handle === "string") patch.handle = handle;
@@ -116,24 +116,24 @@ function envServerUrl(): string | undefined {
 }
 
 /** settings 与 BETTER_AUTH_URL 合并后的生效配置：环境变量优先。 */
-function effectiveSettings(scope: SettingsScope<TalkSettings>): TalkSettings {
+function effectiveSettings(scope: SettingsScope<GuildSettings>): GuildSettings {
   const current = scope.get();
   const serverUrl = envServerUrl();
   return serverUrl ? { ...current, serverUrl } : current;
 }
 
 /**
- * 首次运行把默认 serverUrl 落进 settings 文档（~/.dsh/settings.yaml 的 talk 段）：
+ * 首次运行把默认 serverUrl 落进 settings 文档（~/.dsh/settings.yaml 的 guild 段）：
  * 用户在设置页或该文件里就能看到并改成任意后端，而不用去猜一个隐式默认值。
  * 只在用户层没有该键时写一次（改过的值不会被覆盖）；由 BETTER_AUTH_URL 指定的
  * 本地开发地址不写文档，避免把 loopback 地址污染进全局配置。
  */
-function seedServerUrl(ctx: Context, scope: SettingsScope<TalkSettings>): void {
+function seedServerUrl(ctx: Context, scope: SettingsScope<GuildSettings>): void {
   if (envServerUrl()) return;
-  const descriptor = ctx.settings.describe().find((entry) => entry.ns === TALK_NS);
+  const descriptor = ctx.settings.describe().find((entry) => entry.ns === GUILD_NS);
   if (descriptor?.user !== undefined && "serverUrl" in (descriptor.user as object)) return;
   scope.update({ serverUrl: DEFAULT_SERVER_URL }).catch((error: unknown) => {
-    console.warn(`[dsh-talk] 写入默认 serverUrl 失败: ${errorOf(error)}`);
+    console.warn(`[dsh-guild] 写入默认 serverUrl 失败: ${errorOf(error)}`);
   });
 }
 
@@ -200,10 +200,10 @@ function parseAgentSessionPackage(bytes: Buffer): AgentSessionPackage | null {
 }
 
 /** 克隆会话的落地工作区名（用户主目录下的同名目录 + 工作区标题） */
-const CLONE_WORKSPACE_NAME = "DSH-Talk";
+const CLONE_WORKSPACE_NAME = "DSH-Guild";
 
 /**
- * 克隆会话的默认落地目录：用户主目录下的 DSH-Talk，不存在则新建。
+ * 克隆会话的默认落地目录：用户主目录下的 DSH-Guild，不存在则新建。
  * 不写死绝对路径 —— 每个用户的家目录不同，用 homedir() 现算。
  */
 function ensureCloneWorkspaceDir(): string {
@@ -223,7 +223,7 @@ interface WorkspaceLike {
 }
 
 /**
- * 把刚还原的会话挂进「DSH-Talk」工作区。工作区按目录注册：同一目录已注册时
+ * 把刚还原的会话挂进「DSH-Guild」工作区。工作区按目录注册：同一目录已注册时
  * 直接复用那条记录（标题保持不变），因此重复克隆都落在同一个工作区里。
  * 注册表不可用或挂载失败时静默跳过（会话照常可用，只是留在「未分组」）。
  */
@@ -276,13 +276,13 @@ function persistenceOr503(ctx: Context, res: ServerResponse): SessionPersistence
   return persistence;
 }
 
-// ---------- /api/talk/sessions + /api/talk/session-package 路由 ----------
+// ---------- /api/guild/sessions + /api/guild/session-package 路由 ----------
 
-function sessionRoutes(ctx: Context, scope: SettingsScope<TalkSettings>): WebRoute[] {
+function sessionRoutes(ctx: Context, scope: SettingsScope<GuildSettings>): WebRoute[] {
   return [
     {
       kind: "exact",
-      path: "/api/talk/sessions",
+      path: "/api/guild/sessions",
       handler: async (_req, res) => {
         const persistence = persistenceOr503(ctx, res);
         if (!persistence) return;
@@ -307,7 +307,7 @@ function sessionRoutes(ctx: Context, scope: SettingsScope<TalkSettings>): WebRou
     },
     {
       kind: "exact",
-      path: "/api/talk/session-package",
+      path: "/api/guild/session-package",
       handler: async (req, res) => {
         const persistence = persistenceOr503(ctx, res);
         if (!persistence) return;
@@ -354,13 +354,13 @@ function sessionRoutes(ctx: Context, scope: SettingsScope<TalkSettings>): WebRou
   ];
 }
 
-// ---------- /api/talk/config + /api/talk/clone 路由 ----------
+// ---------- /api/guild/config + /api/guild/clone 路由 ----------
 
-function talkRoutes(ctx: Context, scope: SettingsScope<TalkSettings>): WebRoute[] {
+function guildRoutes(ctx: Context, scope: SettingsScope<GuildSettings>): WebRoute[] {
   return [
     {
       kind: "exact",
-      path: "/api/talk/config",
+      path: "/api/guild/config",
       handler: async (req, res) => {
         if (req.method === "GET") {
           sendJson(res, 200, effectiveSettings(scope));
@@ -385,7 +385,7 @@ function talkRoutes(ctx: Context, scope: SettingsScope<TalkSettings>): WebRoute[
     },
     {
       kind: "exact",
-      path: "/api/talk/clone",
+      path: "/api/guild/clone",
       handler: async (req, res) => {
         if (req.method !== "POST") {
           sendJson(res, 405, { code: "BAD_REQUEST", message: "method not allowed" });
@@ -432,11 +432,11 @@ function talkRoutes(ctx: Context, scope: SettingsScope<TalkSettings>): WebRoute[
             sendJson(res, 503, { code: "INTERNAL", message: "会话服务不可用" });
             return;
           }
-          // 落地目录：显式传入优先；默认用户主目录下的 DSH-Talk（不存在则新建）
+          // 落地目录：显式传入优先；默认用户主目录下的 DSH-Guild（不存在则新建）
           const cwd = wantedCwd ?? ensureCloneWorkspaceDir();
           const session = store.create(undefined, { seed: pack.events, meta: { cwd } });
           await store.flush(session);
-          // 归入「DSH-Talk」工作区（同目录已注册则复用同一工作区）；失败不影响克隆
+          // 归入「DSH-Guild」工作区（同目录已注册则复用同一工作区）；失败不影响克隆
           await attachToCloneWorkspace(ctx, session.id, cwd);
           sendJson(res, 200, {
             bytes: bytes.byteLength,
@@ -453,14 +453,14 @@ function talkRoutes(ctx: Context, scope: SettingsScope<TalkSettings>): WebRoute[
 }
 
 export function apply(ctx: Context): void {
-  const scope = ctx.settings.register(TALK_NS, talkSettingsSchema, {
+  const scope = ctx.settings.register(GUILD_NS, guildSettingsSchema, {
     applies: "live",
   });
   // 首次运行把默认后端写进 settings 文档，用户随后可在设置页 / settings.yaml 里改
   seedServerUrl(ctx, scope);
 
   const disposers: Array<() => void> = [];
-  for (const route of talkRoutes(ctx, scope)) {
+  for (const route of guildRoutes(ctx, scope)) {
     disposers.push(ctx.webServer.register(route));
   }
 
@@ -468,6 +468,6 @@ export function apply(ctx: Context): void {
     () => () => {
       for (const dispose of disposers) dispose();
     },
-    "dsh-talk: config api",
+    "dsh-guild: config api",
   );
 }
