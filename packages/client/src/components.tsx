@@ -26,21 +26,76 @@ import {
 /** 居中提示视图 */
 function Centered({ children }: { children: ReactElement }): ReactElement {
   return (
-    <div style={{ flex: 1, minHeight: 0, display: "grid", placeItems: "center", padding: 24 }}>
+    <div
+      style={{
+        flex: 1,
+        minHeight: 0,
+        display: "grid",
+        placeItems: "center",
+        padding: 24,
+      }}
+    >
       {children}
     </div>
   );
 }
 
 function LoadingView(): ReactElement {
-  return <div style={{ color: palette.muted, fontSize: 14 }}>正在连接 DSH-Guild Server…</div>;
+  const settings = useGuildState().settings;
+  const serverUrl = settings?.serverUrl ?? "";
+
+  /**
+   * 「测试本机连通性」= 用本机浏览器直接打开服务端的健康检查 JSON。
+   * 页面由本机发出请求，因此看到 /healthz 返回 { ok: true } 就证明
+   * 本机 → 该域名的 DNS / TCP / TLS / HTTP 这一路是通的（通不了则浏览器报错）。
+   */
+  const openHealthz = (): void => {
+    if (serverUrl.length === 0) return;
+    const healthUrl = `${serverUrl.replace(/\/+$/, "")}/healthz`;
+    window.open(healthUrl, "_blank", "noopener,noreferrer");
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 12,
+      }}
+    >
+      <div style={{ color: palette.muted, fontSize: 14 }}>
+        {settings === null ? "正在读取本地配置…" : "正在连接 DSH-Guild Server…"}
+      </div>
+      <div style={{ color: palette.muted, fontSize: 12 }}>
+        {settings === null ? "服务地址读取中…" : serverUrl}
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={serverUrl.length === 0}
+        onClick={openHealthz}
+      >
+        测试本机连通性
+      </Button>
+    </div>
+  );
 }
 
 function ErrorView(): ReactElement {
   const { error } = useGuildState();
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-      <div style={{ color: palette.danger, fontSize: 14 }}>连接失败：{error}</div>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 12,
+      }}
+    >
+      <div style={{ color: palette.danger, fontSize: 14 }}>
+        连接失败：{error}
+      </div>
       <Button variant="outline" size="sm" onClick={() => void refresh()}>
         重试
       </Button>
@@ -167,10 +222,19 @@ export function GuildPage(props: { sessionId?: string }): ReactElement {
   }
 
   return (
-    <div ref={setPageEl} style={pageRoot} data-dsht-page-root data-conversation-composer-overlay="">
+    <div
+      ref={setPageEl}
+      style={pageRoot}
+      data-dsht-page-root
+      data-conversation-composer-overlay=""
+    >
       {body}
       {guild.toast.length > 0 ? (
-        <Toast text={guild.toast} anchor={pageEl} onDone={() => dismissToast()} />
+        <Toast
+          text={guild.toast}
+          anchor={pageEl}
+          onDone={() => dismissToast()}
+        />
       ) : null}
       <ConfirmDialog />
     </div>

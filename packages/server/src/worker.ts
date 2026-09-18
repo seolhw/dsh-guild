@@ -55,9 +55,12 @@ app.get("/", (c) =>
 );
 
 // ----------------- 健康检查 -----------------
+// 客户端「测试本机连通性」会直接用浏览器打开本路由：用户看到本 JSON 即说明
+// 本机对该域名的 DNS / TCP / TLS / HTTP 链路通畅，message 用来把这层含义讲清楚。
 app.get("/healthz", (c) =>
   c.json({
     ok: true,
+    message: "您当前可以正常连接 DSH-Guild 服务",
     ts: Date.now(),
     env: { DB: !!c.env.DB, R2: !!c.env.R2, ROOM: !!c.env.ROOM_ACTOR },
   }),

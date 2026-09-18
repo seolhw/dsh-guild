@@ -725,12 +725,13 @@ export async function refresh(): Promise<void> {
   setState({ phase: "booting", busy: true, error: "" });
   try {
     const settings = await hostConfigGet();
+    // 配置一拿到就先发布：界面可以立刻显示服务地址，不必死等后续两次跨境请求
+    setState({ settings });
     if (settings.token.length === 0) {
       resetInbox();
       setState({
         phase: "anon",
         busy: false,
-        settings,
         pendingEmail: null,
         pendingEmailReason: null,
       });
@@ -743,7 +744,6 @@ export async function refresh(): Promise<void> {
       setState({
         phase: "anon",
         busy: false,
-        settings,
         pendingEmail: null,
         pendingEmailReason: null,
       });
@@ -778,7 +778,6 @@ export async function refresh(): Promise<void> {
         me: null,
         meEmail: null,
         communities: [],
-        settings: state.settings,
         pendingEmail: null,
         pendingEmailReason: null,
       });
