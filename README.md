@@ -1,5 +1,7 @@
 # DSH-Guild
 
+[![npm](https://img.shields.io/npm/v/dsh-guild)](https://www.npmjs.com/package/dsh-guild)
+
 > 把「社区」装进 DSH —— 在 DeepSeek Harness 里直接和同好聊天、提问求助、发通知，社区内容与你的 Agent 工作区不再割裂。
 
 一个面向 DSH 用户的类 Discord 社区插件：注册一个社区账号后，就可以在 DSH 面板里自建或加入社区，实时聊天、贴图传文件、`@` 提醒、管理成员，全程不需要跳出 DSH。
@@ -116,11 +118,17 @@ DSH-Guild 最典型的用法，是插件作者把社区直接开在自己的 DSH
 ### 安装到 profile
 
 ```bash
-# 从 GitHub 装进 web profile
-npx @deepseek-ai/dsh plugin --profile web add github:seolhw/dsh-guild
+# 从 npm 装进 web profile（推荐）
+npx @deepseek-ai/dsh plugin --profile web add dsh-guild
 
 # 启动 DSH Web
 npx @deepseek-ai/dsh web
+```
+
+也可以直接从 GitHub 装最新源码：
+
+```bash
+npx @deepseek-ai/dsh plugin --profile web add github:seolhw/dsh-guild
 ```
 
 ### 代理设置（可选）
@@ -137,7 +145,7 @@ Server 地址为 `https://dsh-guild-api.huiwang.fun` ，部署在 Cloudflare 上
 ### 升级与卸载
 
 ```bash
-npx @deepseek-ai/dsh plugin --profile web update dsh-guild    # 拉到仓库最新提交
+npx @deepseek-ai/dsh plugin --profile web update dsh-guild    # 升级到 npm 最新版
 npx @deepseek-ai/dsh plugin --profile web remove dsh-guild    # 卸载（同时从 dsh.profile.bundles 移除）
 ```
 
