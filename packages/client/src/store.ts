@@ -1713,10 +1713,14 @@ function closeRealtime(): void {
 
 // ---------------- 在线状态（presence） ----------------
 
-/** 窗口不可见 / 失焦视为「离开」，否则「在线」；离线由断连自动处理 */
+/**
+ * 页面不可见（切走标签页 / 最小化）视为「离开」，否则「在线」；离线由断连自动处理。
+ * 不用 document.hasFocus()：它判定的是整个浏览器窗口是否持有系统焦点，用户点一下
+ * 别的窗口（编辑器 / 终端 / 输入法候选框）就会把自己误标成「离开」。
+ */
 function desiredPresence(): "online" | "away" {
   if (typeof document === "undefined") return "online";
-  if (document.visibilityState === "hidden" || !document.hasFocus()) return "away";
+  if (document.visibilityState === "hidden") return "away";
   return "online";
 }
 
@@ -1781,15 +1785,11 @@ function bindPresenceListeners(): void {
   if (presenceBound) return;
   presenceBound = true;
   document.addEventListener("visibilitychange", onPresenceSignal);
-  window.addEventListener("focus", onPresenceSignal);
-  window.addEventListener("blur", onPresenceSignal);
 }
 function unbindPresenceListeners(): void {
   if (!presenceBound) return;
   presenceBound = false;
   document.removeEventListener("visibilitychange", onPresenceSignal);
-  window.removeEventListener("focus", onPresenceSignal);
-  window.removeEventListener("blur", onPresenceSignal);
 }
 
 function wsUrl(roomId: string): string {
