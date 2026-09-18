@@ -18,3 +18,4 @@ mcp-todos.json
 experiments/m0-5/node_modules/
 experiments/m0-5/.wrangler/
 experiments/m0-5/dev*.log
+.npmrc
