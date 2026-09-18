@@ -13,7 +13,7 @@ import {
 } from "@deepseek-ai/dsh-client-ui-primitives";
 import { type MessageAttachment, Permission } from "@dsh-guild/types/entities";
 import type { CSSProperties, KeyboardEvent, ReactElement } from "react";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import {
   askConfirm,
   canEditMessage,
@@ -263,6 +263,18 @@ export function MessageRow({
     channelOf?.kind === "text" &&
     (channelPerms & Permission.CREATE_THREAD) !== 0;
 
+  // 编辑框与主输入框同款自动增高：先归零再按 scrollHeight 撑开，
+  // 上限由 textAreaEdit 样式的 maxHeight（45vh）承担，超出才内部滚动。
+  const editRef = useRef<HTMLTextAreaElement | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: draftText 是触发源，不在回调里读取
+  useLayoutEffect(() => {
+    const el = editRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+    el.style.overflowY = el.scrollHeight > el.clientHeight ? "auto" : "hidden";
+  }, [draftText, editing]);
+
   async function saveEdit(): Promise<void> {
     if (savingEdit) return;
     setSavingEdit(true);
@@ -422,6 +434,7 @@ export function MessageRow({
         </div>
         {editing ? (
           <textarea
+            ref={editRef}
             value={draftText}
             onChange={(e) => setDraftText(e.target.value)}
             onKeyDown={onEditKeyDown}

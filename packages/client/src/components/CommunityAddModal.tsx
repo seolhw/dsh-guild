@@ -58,7 +58,7 @@ const discoverDesc: CSSProperties = {
 
 /** 活跃度一行：比「成员数」更能说明点进去有没有人说话 */
 const discoverActivity: CSSProperties = {
-  fontSize: 12,
+  fontSize: 14,
   color: palette.muted,
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -72,7 +72,7 @@ const officialBadge: CSSProperties = {
   borderRadius: 4,
   border: `1px solid ${palette.accent}`,
   color: palette.accent,
-  fontSize: 11,
+  fontSize: 14,
   fontWeight: 600,
 };
 

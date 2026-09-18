@@ -100,7 +100,9 @@ export function ChannelList({
                     {ch.name}
                   </span>
                   {active && guild.view.messagesLoading ? (
-                    <span style={{ display: "inline-flex", flex: "0 0 auto", color: palette.muted }}>
+                    <span
+                      style={{ display: "inline-flex", flex: "0 0 auto", color: palette.muted }}
+                    >
                       <Spinner size={12} />
                     </span>
                   ) : null}

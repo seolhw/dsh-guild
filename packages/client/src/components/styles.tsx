@@ -59,8 +59,7 @@ export const palette = {
   /** 搜索命中关键词的底色（比 mentionBg 更实一档的半透明品牌色） */
   highlightBg: "var(--dsw-alias-interactive-bg-hover-accent)",
   /** 头像无图时的默认底色渐变 */
-  avatarFallback:
-    "var(--dsht-community-avatar-bg, #ffffff)",
+  avatarFallback: "var(--dsht-community-avatar-bg, #ffffff)",
   /**
    * 社区头像（社区 logo）的圆形底色：内缩 logo 四周露出的那一圈。
    * 亮色主题白底、暗色主题黑底，取值走 --dsht-community-avatar-bg 变量层

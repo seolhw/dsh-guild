@@ -746,12 +746,7 @@ export class ServerClient {
 
   /** POST /api/messages/:id/pin —— 置顶消息（社区 MANAGE_MESSAGES） */
   pinMessage(messageId: string): Promise<PinMessageResponse> {
-    return this.call<PinMessageResponse>(
-      "POST",
-      `/api/messages/${messageId}/pin`,
-      undefined,
-      true,
-    );
+    return this.call<PinMessageResponse>("POST", `/api/messages/${messageId}/pin`, undefined, true);
   }
 
   /** DELETE /api/messages/:id/pin —— 取消置顶 */

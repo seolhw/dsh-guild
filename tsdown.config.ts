@@ -66,6 +66,16 @@ export default (): UserConfig[] => {
         // 不在平台模块表里的依赖（@dsh-guild/types、我们自己的代码等）一律内联
         alwaysBundle: (id: string) => (PLATFORM_MODULES.includes(id as never) ? undefined : true),
       },
+      alias: {
+        // vfile@6 用 package.json 的 `imports`（#minpath / #minproc / #minurl）
+        // 在 Node 版与 browser 版之间切换，rolldown 在 platform: "browser" 下
+        // 会误选 Node 分支，把 require("node:path") 之类的调用留进产物，
+        // 而 DSH loader 的模块表里没有这些名字 → 插件加载失败。
+        // 这里直接指到浏览器替身，顺带覆盖其余可能的 node: 内置引用。
+        "node:path": resolve(process.cwd(), "packages/client/src/shims/nodeBuiltins.ts"),
+        "node:process": resolve(process.cwd(), "packages/client/src/shims/nodeBuiltins.ts"),
+        "node:url": resolve(process.cwd(), "packages/client/src/shims/nodeBuiltins.ts"),
+      },
       define: {
         "process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV ?? "production"),
         "import.meta.env.MODE": JSON.stringify(process.env.NODE_ENV ?? "production"),
@@ -74,6 +84,10 @@ export default (): UserConfig[] => {
       },
       outputOptions: {
         entryFileNames: "client.js",
+        // DSH 的 loader 只加载 client.js 这一个文件，因此必须关闭代码分割：
+        // Streamdown 内部有动态 import()（mermaid、Shiki 语言包），默认会拆出
+        // chunk-*.cjs 等旁挂文件，运行时按相对路径取会 404。
+        codeSplitting: false,
         banner: `window.__ModuleLoader__.load({ id: ${JSON.stringify("dsh-guild")}, factory: (require) => {`,
         footer: "return module.exports; } });",
         intro: "var module = { exports: {} }; var exports = module.exports;",

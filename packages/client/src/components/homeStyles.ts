@@ -251,10 +251,13 @@ export const composerToolbarGap: CSSProperties = {
 };
 
 /** 已并入 composerBox 外框，故自身不再描边、不再铺底色 */
+// 输入框随内容自动增高（高度由 ChatPane 的 effect 实测 scrollHeight 写入）：
+// 上限取视口高度的 45%，窗口大时能看更多，窗口小时也不会把消息区挤没；
+// overflowY 初始 hidden，只有超出上限时 effect 才切换成 auto 显示滚动条。
 export const textArea: CSSProperties = {
   width: "100%",
   minHeight: 34,
-  maxHeight: 160,
+  maxHeight: "45vh",
   resize: "none",
   border: "none",
   background: "transparent",
@@ -263,12 +266,16 @@ export const textArea: CSSProperties = {
   font: "inherit",
   fontSize: 14,
   outline: "none",
+  overflowY: "hidden",
 };
 
+// 编辑消息用的输入框：与主输入框一致的自动增高（高度由 MessageRow 的 effect 写入），
+// 上限同为 45vh，超出才内部滚动。resize 关掉，避免用户拖拽破坏自动高度。
 export const textAreaEdit: CSSProperties = {
   width: "100%",
   minHeight: 54,
-  resize: "vertical",
+  maxHeight: "45vh",
+  resize: "none",
   borderRadius: 8,
   border: `1px solid ${palette.border}`,
   background: palette.inputBg,
@@ -276,6 +283,8 @@ export const textAreaEdit: CSSProperties = {
   padding: "6px 8px",
   font: "inherit",
   fontSize: 14,
+  outline: "none",
+  overflowY: "hidden",
 };
 
 export const pendingChip: CSSProperties = {

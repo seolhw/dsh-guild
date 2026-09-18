@@ -53,7 +53,7 @@ function ProjectCard(): ReactElement {
   return (
     <div style={{ ...tipWrap, maxWidth: 280, gap: 4 }} data-dsht-hover-tip>
       <span style={tipTitle}>DSH-Guild</span>
-      <span style={{...tipHint, textAlign: "justify"}}>
+      <span style={{ ...tipHint, textAlign: "justify" }}>
         把「社区」装进 DSH：在 DeepSeek Harness 里和同好聊天、提问求助、发通知。
       </span>
       <a
@@ -221,7 +221,9 @@ export function CommunitiesRail({
           </button>,
           <RailTip
             title="站内信"
-            hint={guild.inboxUnread > 0 ? `${unreadLabel} 条未读，含社区邀请` : "社区邀请与重要事件"}
+            hint={
+              guild.inboxUnread > 0 ? `${unreadLabel} 条未读，含社区邀请` : "社区邀请与重要事件"
+            }
           />,
         )}
         {withTip(

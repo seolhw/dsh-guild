@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@dsh-guild/types": "workspace:*"
+    "@dsh-guild/types": "workspace:*",
+    "streamdown": "^2.6.0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",

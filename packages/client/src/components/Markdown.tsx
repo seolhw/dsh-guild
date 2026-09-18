@@ -1,316 +1,224 @@
 // ================================================================
-// 消息正文的轻量 Markdown 渲染：直接产出 React 节点（不写 innerHTML，天然免疫 XSS）。
-// 覆盖聊天常用语法：围栏代码块、标题、引用、有序/无序列表、分割线，以及行内
-// code / 粗体 / 斜体 / 删除线 / 链接 / 自动链接，并保留 @提及 高亮与单行换行。
-// 只做「够用」的解析：不支持表格、脚注、嵌套列表等重语法。
+// 消息正文的 Markdown 渲染：基于 Streamdown（Vercel 的流式 Markdown 渲染器）。
+// 相比早先自己写的轻量解析器，它自带 GFM、代码高亮、CJK 排版与成套的排版样式，
+// 表格 / 嵌套列表等重语法也能正确渲染。
+// 本文件负责两件事：DSH-Guild 特有的 @提及 高亮，以及不依赖 Tailwind 的内联排版。
 // ================================================================
 
-import type { CSSProperties, ReactElement, ReactNode } from "react";
+import {
+  createContext,
+  type CSSProperties,
+  type ReactElement,
+  type ReactNode,
+  useContext,
+} from "react";
+import { Streamdown } from "streamdown";
 import { palette } from "./styles";
 
-/** 等宽字体栈（宿主没有对应 token，按系统字体回退） */
-const MONO_FONT = 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace';
+/** 标记当前 code 是否位于 pre 代码块内（块内样式由 pre 统一提供） */
+const CodeBlockContext = createContext(false);
 
 const rootStyle: CSSProperties = {
-  whiteSpace: "pre-wrap",
-  wordBreak: "break-word",
   fontSize: 14,
-  lineHeight: 1.55,
+  lineHeight: 1.7,
+  wordBreak: "break-word",
+};
+
+const headingStyle: CSSProperties = {
+  fontWeight: 600,
+  lineHeight: 1.3,
+  margin: "18px 0 8px",
+};
+
+/** 代码统一用等宽字体：pre 和行内 code 共用，避免块内退回正文比例字体 */
+export const MONO_FONT = "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace";
+
+const codeBlockStyle: CSSProperties = {
+  background: palette.layer2,
+  border: `1px solid ${palette.border}`,
+  borderRadius: 6,
+  padding: "10px 12px",
+  margin: "10px 0",
+  overflowX: "auto",
+  fontSize: 14,
+  lineHeight: 1.6,
+  // 不写字体族的话，pre 会继承正文的中文 UI 字体，代码看起来是「比例字体排版」
+  fontFamily: MONO_FONT,
+  tabSize: 2,
 };
 
 const inlineCodeStyle: CSSProperties = {
-  fontFamily: MONO_FONT,
-  fontSize: 14,
-  padding: "1px 5px",
+  // 代码块内部的行内 code 不要再叠一层底色，否则会看到发蓝的方块。
+  // 给个中性灰底，跟随主题；块内由 pre 提供底色。
+  background: "rgba(127, 127, 127, 0.16)",
   borderRadius: 4,
-  background: palette.inputBg,
-  border: `1px solid ${palette.border}`,
-};
-
-const codeBlockStyle: CSSProperties = {
-  margin: "4px 0",
-  padding: "8px 10px",
-  borderRadius: 8,
-  background: palette.inputBg,
-  border: `1px solid ${palette.border}`,
-  fontFamily: MONO_FONT,
+  padding: "1px 5px",
   fontSize: 14,
-  lineHeight: 1.5,
-  whiteSpace: "pre",
-  overflowX: "auto",
+  fontFamily: MONO_FONT,
 };
 
-const linkStyle: CSSProperties = {
-  color: palette.accent,
-  textDecoration: "underline",
-  textUnderlineOffset: 2,
-  wordBreak: "break-all",
-};
+/** @提及高亮：自己用品牌底色反白 */
+function mentionStyle(self: boolean): CSSProperties {
+  return {
+    color: self ? palette.onColor : palette.accent,
+    background: self ? palette.accent : palette.mentionBg,
+    borderRadius: 4,
+    padding: self ? "0 3px" : "0 2px",
+    fontWeight: 500,
+  };
+}
 
-const quoteStyle: CSSProperties = {
-  margin: "4px 0",
-  padding: "2px 0 2px 10px",
-  borderLeft: `3px solid ${palette.border}`,
-  color: palette.muted,
-};
+const MENTION_RE = /@[\p{L}\p{N}_]+/gu;
 
-const hrStyle: CSSProperties = {
-  border: "none",
-  borderTop: `1px solid ${palette.border}`,
-  margin: "8px 0",
-};
+/**
+ * 把一段纯文本里的 @提及 拆成节点数组。
+ * 只在文本节点上调用，所以代码块 / 行内 code 里的 @ 字面量不受影响。
+ */
+function renderMentions(text: string, selfHandle: string): ReactNode {
+  if (!text.includes("@")) return text;
+  const parts = text.split(MENTION_RE);
+  if (parts.length === 1) return text;
+  const marks = text.match(MENTION_RE) ?? [];
+  const out: ReactNode[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    if (parts[i]) out.push(parts[i]);
+    const mark = marks[i];
+    if (mark === undefined) continue;
+    out.push(
+      <span key={`${mark}-${i}`} style={mentionStyle(mark.slice(1) === selfHandle)}>
+        {mark}
+      </span>,
+    );
+  }
+  return out;
+}
 
-const paragraphStyle: CSSProperties = { margin: "2px 0" };
-const listStyle: CSSProperties = { margin: "4px 0", paddingLeft: 22 };
-
-function headingStyle(level: number): CSSProperties {
-  return { margin: "6px 0 2px", fontSize: level <= 3 ? 16 : 14, fontWeight: 700, lineHeight: 1.4 };
+/** 递归把 children 里的字符串节点做 @提及 高亮，其余原样透传 */
+function withMentions(children: ReactNode, selfHandle: string): ReactNode {
+  if (typeof children === "string") return renderMentions(children, selfHandle);
+  if (Array.isArray(children)) {
+    return children.map((child) =>
+      typeof child === "string" ? renderMentions(child, selfHandle) : child,
+    );
+  }
+  return children;
 }
 
 /**
- * 行内语法：code / 自动链接 / 粗斜体 / 删除线 / 链接 / @提及 / 转义。
- * 必须带 u 标志（@提及用到 \p{L} 之类的 Unicode 属性转义）；
- * 自动链接排在强调语法之前，避免 URL 里的下划线被当成斜体。
+ * 代码块里的 code 由 pre 提供底色，行内 code 才需要自己的灰底。
+ * Streamdown 会按 Shiki 结果给每个 token 挂 `style="color: var(--shiki-...)"`，
+ * 但项目里没有 Tailwind 也没引 Shiki 主题 CSS，这些变量解析不到会把颜色退回继承值。
+ * 这里统一用文字色覆盖，保证在宿主深浅主题下都可读。
  */
-const INLINE_RE =
-  /^(?:`([^`\n]+)`|(https?:\/\/[^\s<>()]+)|\*\*\*([\s\S]+?)\*\*\*|\*\*([\s\S]+?)\*\*|__([\s\S]+?)__|~~([\s\S]+?)~~|\*([^*\n]+)\*|_([^_\n]+)_|\[([^\]]*)\]\(([^)\s]+)\)|(@[\p{L}\p{N}_]+)|(\\.))/u;
-
-const FENCE_RE = /^\s*(```|~~~)/;
-const HEADING_RE = /^(#{1,6})\s+(.*)$/;
-const HR_RE = /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/;
-const QUOTE_RE = /^\s*>\s?/;
-const LIST_ITEM_RE = /^\s*(?:([-*+])|(\d+)[.)])\s+(.*)$/;
-
-/** 段落终止判定：遇到下一个块级语法就收尾 */
-function startsBlock(line: string): boolean {
-  return (
-    FENCE_RE.test(line) ||
-    HEADING_RE.test(line) ||
-    HR_RE.test(line) ||
-    QUOTE_RE.test(line) ||
-    LIST_ITEM_RE.test(line)
-  );
-}
-
-/** 链接白名单：只放行 http/https/mailto，其余（如 javascript:）按普通文本显示 */
-function safeHref(raw: string): string | null {
-  try {
-    const url = new URL(raw, "https://dsh-guild.invalid");
-    if (url.protocol === "http:" || url.protocol === "https:" || url.protocol === "mailto:") {
-      return raw;
-    }
-  } catch {
-    // 解析失败当普通文本
-  }
-  return null;
-}
-
-/** @提及高亮：自己用品牌底色反白 */
-function mentionNode(key: string, raw: string, selfHandle: string): ReactElement {
-  const isSelf = raw.slice(1) === selfHandle;
-  return (
-    <span
-      key={key}
-      style={{
-        color: isSelf ? palette.onColor : palette.accent,
-        background: isSelf ? palette.accent : palette.mentionBg,
-        borderRadius: 4,
-        padding: isSelf ? "0 3px" : "0 2px",
-        fontWeight: 500,
-      }}
-    >
-      {raw}
-    </span>
-  );
-}
-
-/** 逐段扫描行内语法，产出 React 节点（纯文本原样保留） */
-function renderInline(text: string, selfHandle: string, keyPrefix: string): ReactNode[] {
-  const nodes: ReactNode[] = [];
-  let plain = "";
-  let i = 0;
-  let seq = 0;
-  const flushPlain = (): void => {
-    if (plain !== "") {
-      nodes.push(plain);
-      plain = "";
-    }
-  };
-  while (i < text.length) {
-    const match = INLINE_RE.exec(text.slice(i));
-    if (!match) {
-      plain += text[i];
-      i += 1;
-      continue;
-    }
-    flushPlain();
-    const key = `${keyPrefix}-${seq}`;
-    seq += 1;
-    if (match[1] !== undefined) {
-      nodes.push(
-        <code key={key} style={inlineCodeStyle}>
-          {match[1]}
-        </code>,
-      );
-    } else if (match[2] !== undefined) {
-      // 自动链接：把结尾的句读还给正文
-      const trimmed = match[2].replace(/[.,!?;:]+$/, "");
-      nodes.push(
-        <a key={key} href={trimmed} target="_blank" rel="noreferrer" style={linkStyle}>
-          {trimmed}
-        </a>,
-      );
-      plain = match[2].slice(trimmed.length);
-    } else if (match[3] !== undefined) {
-      nodes.push(
-        <strong key={key}>
-          <em>{renderInline(match[3], selfHandle, key)}</em>
-        </strong>,
-      );
-    } else if (match[4] !== undefined || match[5] !== undefined) {
-      const inner = match[4] ?? match[5] ?? "";
-      nodes.push(<strong key={key}>{renderInline(inner, selfHandle, key)}</strong>);
-    } else if (match[6] !== undefined) {
-      nodes.push(<del key={key}>{renderInline(match[6], selfHandle, key)}</del>);
-    } else if (match[7] !== undefined || match[8] !== undefined) {
-      const inner = match[7] ?? match[8] ?? "";
-      nodes.push(<em key={key}>{renderInline(inner, selfHandle, key)}</em>);
-    } else if (match[9] !== undefined) {
-      const href = safeHref(match[10] ?? "");
-      if (href === null) {
-        // 非法协议：整段按原文显示，不生成链接
-        plain = match[0];
-      } else {
-        nodes.push(
-          <a key={key} href={href} target="_blank" rel="noreferrer" style={linkStyle}>
-            {match[9] || href}
-          </a>,
-        );
-      }
-    } else if (match[11] !== undefined) {
-      nodes.push(mentionNode(key, match[11], selfHandle));
-    } else if (match[12] !== undefined) {
-      plain += match[12].slice(1);
-    }
-    i += match[0].length;
-  }
-  flushPlain();
-  return nodes;
-}
-
-/** 按块解析：围栏代码块 / 标题 / 引用 / 列表 / 分割线 / 段落 */
-function renderBlocks(text: string, selfHandle: string): ReactNode[] {
-  const lines = text.replace(/\r\n?/g, "\n").split("\n");
-  const blocks: ReactNode[] = [];
-  let blockIndex = 0;
-  let i = 0;
-  const nextKey = (): string => `b-${blockIndex++}`;
-  const at = (n: number): string => lines[n] ?? "";
-
-  while (i < lines.length) {
-    const line = at(i);
-
-    const fence = FENCE_RE.exec(line);
-    if (fence) {
-      const closer = new RegExp(`^\\s*${fence[1]}\\s*$`);
-      const body: string[] = [];
-      i += 1;
-      while (i < lines.length && !closer.test(at(i))) {
-        body.push(at(i));
-        i += 1;
-      }
-      i += 1; // 跳过结束围栏（缺失则停在末尾）
-      blocks.push(
-        <pre key={nextKey()} style={codeBlockStyle}>
-          <code>{body.join("\n")}</code>
-        </pre>,
-      );
-      continue;
-    }
-
-    if (/^\s*$/.test(line)) {
-      i += 1;
-      continue;
-    }
-
-    const heading = HEADING_RE.exec(line);
-    if (heading) {
-      const key = nextKey();
-      blocks.push(
-        <div key={key} style={headingStyle((heading[1] ?? "").length)}>
-          {renderInline(heading[2] ?? "", selfHandle, key)}
-        </div>,
-      );
-      i += 1;
-      continue;
-    }
-
-    if (HR_RE.test(line)) {
-      blocks.push(<hr key={nextKey()} style={hrStyle} />);
-      i += 1;
-      continue;
-    }
-
-    if (QUOTE_RE.test(line)) {
-      const body: string[] = [];
-      while (i < lines.length && QUOTE_RE.test(at(i))) {
-        body.push(at(i).replace(QUOTE_RE, ""));
-        i += 1;
-      }
-      const key = nextKey();
-      blocks.push(
-        <blockquote key={key} style={quoteStyle}>
-          {renderInline(body.join("\n"), selfHandle, key)}
-        </blockquote>,
-      );
-      continue;
-    }
-
-    const item = LIST_ITEM_RE.exec(line);
-    if (item) {
-      const ordered = item[2] !== undefined;
-      const items: { line: number; text: string }[] = [];
-      while (i < lines.length) {
-        const next = LIST_ITEM_RE.exec(at(i));
-        if (!next || (next[2] !== undefined) !== ordered) break;
-        items.push({ line: i, text: next[3] ?? "" });
-        i += 1;
-      }
-      const key = nextKey();
-      const children = items.map((entry) => (
-        <li key={entry.line}>{renderInline(entry.text, selfHandle, `${key}-${entry.line}`)}</li>
-      ));
-      blocks.push(
-        ordered ? (
-          <ol key={key} style={listStyle}>
-            {children}
-          </ol>
-        ) : (
-          <ul key={key} style={listStyle}>
-            {children}
-          </ul>
-        ),
-      );
-      continue;
-    }
-
-    const paragraph: string[] = [];
-    while (i < lines.length && !/^\s*$/.test(at(i)) && !startsBlock(at(i))) {
-      paragraph.push(at(i));
-      i += 1;
-    }
-    const key = nextKey();
-    blocks.push(
-      <div key={key} style={paragraphStyle}>
-        {renderInline(paragraph.join("\n"), selfHandle, key)}
-      </div>,
-    );
-  }
-
-  return blocks;
+function CodeElement({ children }: { children?: ReactNode }): ReactElement {
+  const inBlock = useContext(CodeBlockContext);
+  if (inBlock) return <code style={{ color: palette.text }}>{children}</code>;
+  return <code style={inlineCodeStyle}>{children}</code>;
 }
 
 /** 消息正文：text 为 Markdown 原文，selfHandle 用于 @提及高亮 */
 export function Markdown({ text, selfHandle }: { text: string; selfHandle: string }): ReactElement {
-  return <div style={rootStyle}>{renderBlocks(text, selfHandle)}</div>;
+  return (
+    <div className="dsht-md" style={rootStyle}>
+      <Streamdown
+        mode="static"
+        components={{
+          p: (props) => (
+            <p style={{ margin: "6px 0" }}>{withMentions(props.children, selfHandle)}</p>
+          ),
+          li: (props) => (
+            <li style={{ margin: "3px 0" }}>{withMentions(props.children, selfHandle)}</li>
+          ),
+          h1: (props) => (
+            <h1 style={{ ...headingStyle, fontSize: 22 }}>
+              {withMentions(props.children, selfHandle)}
+            </h1>
+          ),
+          h2: (props) => (
+            <h2 style={{ ...headingStyle, fontSize: 19 }}>
+              {withMentions(props.children, selfHandle)}
+            </h2>
+          ),
+          h3: (props) => (
+            <h3 style={{ ...headingStyle, fontSize: 17 }}>
+              {withMentions(props.children, selfHandle)}
+            </h3>
+          ),
+          h4: (props) => (
+            <h4 style={{ ...headingStyle, fontSize: 15 }}>
+              {withMentions(props.children, selfHandle)}
+            </h4>
+          ),
+          h5: (props) => (
+            <h5 style={{ ...headingStyle, fontSize: 14 }}>
+              {withMentions(props.children, selfHandle)}
+            </h5>
+          ),
+          h6: (props) => (
+            <h6 style={{ ...headingStyle, fontSize: 14 }}>
+              {withMentions(props.children, selfHandle)}
+            </h6>
+          ),
+          ul: (props) => <ul style={{ margin: "6px 0", paddingLeft: 22 }}>{props.children}</ul>,
+          ol: (props) => <ol style={{ margin: "6px 0", paddingLeft: 22 }}>{props.children}</ol>,
+          a: (props) => (
+            <a href={props.href} target="_blank" rel="noreferrer" style={{ color: palette.accent }}>
+              {withMentions(props.children, selfHandle)}
+            </a>
+          ),
+          strong: (props) => (
+            <strong style={{ fontWeight: 600 }}>{withMentions(props.children, selfHandle)}</strong>
+          ),
+          blockquote: (props) => (
+            <blockquote
+              style={{
+                borderLeft: `3px solid ${palette.border}`,
+                margin: "8px 0",
+                paddingLeft: 12,
+                color: palette.muted,
+              }}
+            >
+              {props.children}
+            </blockquote>
+          ),
+          // 注意：围栏代码块不走这里。Streamdown 把它交给独立的 code-block 组件
+          // （看 DOM 上的 data-streamdown="code-block"），样式由 components.tsx 的
+          // STREAMDOWN_CODE_CSS 用 CSS 覆盖；此处的 pre/code 只兜底非围栏场景。
+          pre: (props) => (
+            <pre style={codeBlockStyle}>
+              <CodeBlockContext.Provider value={true}>{props.children}</CodeBlockContext.Provider>
+            </pre>
+          ),
+          code: (props) => <CodeElement>{props.children}</CodeElement>,
+          hr: () => (
+            <hr
+              style={{ border: "none", borderTop: `1px solid ${palette.border}`, margin: "14px 0" }}
+            />
+          ),
+          table: (props) => (
+            <table style={{ borderCollapse: "collapse", margin: "8px 0" }}>{props.children}</table>
+          ),
+          th: (props) => (
+            <th
+              style={{
+                border: `1px solid ${palette.border}`,
+                padding: "4px 8px",
+                textAlign: "left",
+                fontWeight: 600,
+              }}
+            >
+              {props.children}
+            </th>
+          ),
+          td: (props) => (
+            <td style={{ border: `1px solid ${palette.border}`, padding: "4px 8px" }}>
+              {props.children}
+            </td>
+          ),
+        }}
+      >
+        {text}
+      </Streamdown>
+    </div>
+  );
 }

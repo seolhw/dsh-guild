@@ -350,6 +350,18 @@ export function ChatPane({
     if (guild.view.replyingTo) composerRef.current?.focus();
   }, [guild.view.replyingTo]);
 
+  // 输入框随内容自动增高（Discord 同款）：先把高度归零，再按 scrollHeight 撑开，
+  // 上限由 textArea 样式的 maxHeight（45vh）承担，超出才切成内部滚动。
+  // composerText 不在回调里读取，但必须作为触发源：内容变了才重新测算。
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 同上
+  useLayoutEffect(() => {
+    const el = composerRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+    el.style.overflowY = el.scrollHeight > el.clientHeight ? "auto" : "hidden";
+  }, [composerText]);
+
   // 定位高亮：滚动到目标消息并在 1.8s 后清除标记
   useEffect(() => {
     const targetId = guild.view.focusMessageId;

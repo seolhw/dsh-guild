@@ -67,8 +67,7 @@ export function ShareSnapshotModal({
     setLoadingTree(true);
     void listShareableSessions().then((res) => {
       setTree(res);
-      const initial =
-        getCurrentDshSession() ?? res.current ?? res.groups[0]?.sessions[0]?.id ?? "";
+      const initial = getCurrentDshSession() ?? res.current ?? res.groups[0]?.sessions[0]?.id ?? "";
       setSessionId(initial);
       // 分享标题默认取所选会话的展示名，用户仍可改写
       setTitle(sessionTitleOf(res, initial));
@@ -178,7 +177,7 @@ export function ShareSnapshotModal({
                         {row.title}
                       </span>
                       {sessionHint(row).length > 0 ? (
-                        <span style={{ ...smallText, flex: "0 0 auto", fontSize: 12 }}>
+                        <span style={{ ...smallText, flex: "0 0 auto", fontSize: 14 }}>
                           {sessionHint(row)}
                         </span>
                       ) : null}

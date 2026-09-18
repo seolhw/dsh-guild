@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { AuthScreen } from "./components/AuthScreen";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { HomeScreen } from "./components/HomeScreen";
+import { MONO_FONT } from "./components/Markdown";
 import { pageRoot, palette } from "./components/styles";
 import {
   activateGuild,
@@ -67,15 +68,10 @@ function LoadingView(): ReactElement {
       <div style={{ color: palette.muted, fontSize: 14 }}>
         {settings === null ? "正在读取本地配置…" : "正在连接 DSH-Guild Server…"}
       </div>
-      <div style={{ color: palette.muted, fontSize: 12 }}>
+      <div style={{ color: palette.muted, fontSize: 14 }}>
         {settings === null ? "服务地址读取中…" : serverUrl}
       </div>
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={serverUrl.length === 0}
-        onClick={openHealthz}
-      >
+      <Button variant="outline" size="sm" disabled={serverUrl.length === 0} onClick={openHealthz}>
         测试本机连通性
       </Button>
     </div>
@@ -93,9 +89,7 @@ function ErrorView(): ReactElement {
         gap: 12,
       }}
     >
-      <div style={{ color: palette.danger, fontSize: 14 }}>
-        连接失败：{error}
-      </div>
+      <div style={{ color: palette.danger, fontSize: 14 }}>连接失败：{error}</div>
       <Button variant="outline" size="sm" onClick={() => void refresh()}>
         重试
       </Button>
@@ -145,6 +139,76 @@ body[data-ds-dark-theme] {
 }
 `;
 
+/**
+ * Streamdown 代码块的样式补齐。
+ *
+ * Streamdown 的围栏代码块不走 Markdown.tsx 的 components 覆写，而是由它自己的
+ * code-block 组件渲染（DOM 上带 data-streamdown="code-block" / "code-block-body"），
+ * 底色、边框、内边距、等宽字体全挂在 Tailwind class 上。本项目没有 Tailwind，
+ * 这些 class 一律不生效，结果是代码块没有底色、且退回正文的比例字体。
+ * 这里按它实际的结构补上等价样式；--sdm-bg / --sdm-c 是它每个 token 下发的
+ * CSS 变量（Shiki 主题变量解析不到时回退到这里的兜底值）。
+ */
+const STREAMDOWN_CODE_CSS = `
+[data-streamdown="code-block"] {
+  margin: 10px 0;
+  border: 1px solid ${palette.border};
+  border-radius: 8px;
+  background: ${palette.layer2};
+  overflow: hidden;
+}
+[data-streamdown="code-block-header"] {
+  font-family: ${MONO_FONT};
+  font-size: 14px;
+  color: ${palette.muted};
+  padding: 6px 12px;
+  background: transparent;
+}
+[data-streamdown="code-block-body"] {
+  border: none;
+  border-radius: 0;
+  background: ${palette.layer2};
+  padding: 10px 12px;
+}
+/* 行内 code：排除 pre 内的，避免给代码块叠底色 */
+.dsht-md :not(pre) > code {
+  font-family: ${MONO_FONT};
+  font-size: 14px;
+  background: rgba(127, 127, 127, 0.16);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+/*
+ * 代码块内的 pre / code：等宽字体。
+ * 不依赖 Streamdown 的 data-* 属性（它那几个属性在部分渲染路径下不输出），
+ * 直接挂在 .dsht-md 作用域内的 pre 上——这个包装器由本插件渲染，必定存在。
+ * Streamdown 会给 pre 传内联 style，故用 !important 压过。
+ */
+.dsht-md pre,
+.dsht-md pre code,
+.dsht-md pre span {
+  font-family: ${MONO_FONT} !important;
+}
+.dsht-md pre {
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+}
+.dsht-md pre code,
+.dsht-md pre span {
+  font-size: inherit !important;
+}
+.dsht-md pre {
+  margin: 0;
+  tab-size: 2;
+  color: ${palette.text};
+}
+.dsht-md pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+`;
+
 let hostCssInjected = false;
 
 /** 注入一次宿主覆盖样式（幂等） */
@@ -152,7 +216,7 @@ function ensureHostCss(): void {
   if (hostCssInjected) return;
   const style = document.createElement("style");
   style.setAttribute("data-dsht-page-css", "");
-  style.textContent = `${PAGE_HOST_CSS}${HOVER_CARD_CSS}${DARK_THEME_CSS}`;
+  style.textContent = `${PAGE_HOST_CSS}${HOVER_CARD_CSS}${DARK_THEME_CSS}${STREAMDOWN_CODE_CSS}`;
   document.head.appendChild(style);
   hostCssInjected = true;
 }
@@ -222,19 +286,10 @@ export function GuildPage(props: { sessionId?: string }): ReactElement {
   }
 
   return (
-    <div
-      ref={setPageEl}
-      style={pageRoot}
-      data-dsht-page-root
-      data-conversation-composer-overlay=""
-    >
+    <div ref={setPageEl} style={pageRoot} data-dsht-page-root data-conversation-composer-overlay="">
       {body}
       {guild.toast.length > 0 ? (
-        <Toast
-          text={guild.toast}
-          anchor={pageEl}
-          onDone={() => dismissToast()}
-        />
+        <Toast text={guild.toast} anchor={pageEl} onDone={() => dismissToast()} />
       ) : null}
       <ConfirmDialog />
     </div>
