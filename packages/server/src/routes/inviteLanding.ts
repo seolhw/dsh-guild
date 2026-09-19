@@ -76,13 +76,13 @@ npx @deepseek-ai/dsh web</code></pre>
       <div class="step">
         <div class="step-head"><span class="num">3</span><span class="step-title">用邀请码加入</span></div>
         <p class="step-body">
-          侧栏底部进入 <strong>DSH-Guild（社区）</strong>，注册登录后点 <strong>＋</strong> 选「加入」，粘贴上面的邀请码。
+          从会话页签进入 <strong>社区</strong>，注册登录后点 <strong>＋</strong> 选「加入」，粘贴上面的邀请码。
         </p>
       </div>
     </section>
 
     <p class="links">
-      <a href="${DSH_REPO}" target="_blank" rel="noreferrer">安装文档</a>
+      <a href="${DSH_REPO}" target="_blank" rel="noreferrer">开源地址</a>
       ·
       <a href="${DSH_NPM}" target="_blank" rel="noreferrer">npm</a>
     </p>`;

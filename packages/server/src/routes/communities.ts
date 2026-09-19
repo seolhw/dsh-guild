@@ -116,6 +116,7 @@ import {
   jsonBody,
   mustRow,
   parseLimitOffset,
+  publicOrigin,
 } from "../lib/response";
 import { listThreadSummaries } from "../lib/threads";
 import { fetchUserById, fetchUsersByIds, findAuthUserByHandleOrEmail } from "../lib/users";
@@ -694,7 +695,9 @@ communitiesApi.post("/:id/invite-emails", async (c) => {
   const to = raw.toLowerCase();
   if (!to.includes("@")) throw HttpApiError.badRequest("邮箱格式不正确");
 
-  const origin = new URL(c.req.url).origin;
+  // 邮件里的链接走 publicOrigin（优先 BETTER_AUTH_URL），不要用 c.req.url 的 host：
+  // 本地 wrangler dev 会被 Miniflare 改写成生产域名，拼出来的是指向生产的 URL
+  const origin = publicOrigin(c);
   const inviteLink = (row.inviteCode ?? "").length > 0 ? `${origin}/invite/${row.inviteCode}` : origin;
   dispatchInviteLinkEmail(c.env, c.req.raw as Request, {
     to,
