@@ -60,7 +60,7 @@ function renderLanding(input: { code: string; community: CommunityRow | null }):
   const installBlock = `
     <section class="steps">
       <h2>怎么加入</h2>
-      <p class="lead">DSH-Guild 要装在本地 DSH 里，网页没法替你打开。</p>
+      <p class="lead">DSH-Guild 要装在本地 DSH 里。</p>
 
       <div class="step">
         <div class="step-head"><span class="num">1</span><span class="step-title">安装 DSH</span></div>
