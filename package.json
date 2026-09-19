@@ -31,6 +31,10 @@
       "platform": "web"
     }
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seolhw/dsh-guild.git"
+  },
   "scripts": {
     "build": "tsdown",
     "dev": "node ./scripts/dev.mjs",
