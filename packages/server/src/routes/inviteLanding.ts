@@ -82,7 +82,7 @@ npx @deepseek-ai/dsh web</code></pre>
     </section>
 
     <p class="links">
-      <a href="${DSH_REPO}" target="_blank" rel="noreferrer">开源地址</a>
+      <a href="${DSH_REPO}" target="_blank" rel="noreferrer">GitHub</a>
       ·
       <a href="${DSH_NPM}" target="_blank" rel="noreferrer">npm</a>
     </p>`;
@@ -197,14 +197,14 @@ npx @deepseek-ai/dsh web</code></pre>
   .invite-label { font-size: 12px; color: #4d6bfe; font-weight: 600; margin-bottom: 8px; }
   .invite-row { display: flex; gap: 10px; align-items: stretch; }
   #invite-code {
-    flex: 1 1 auto; min-width: 0; padding: 12px 14px; border-radius: 10px;
+    flex: 1 1 auto; min-width: 0; padding: 6px 8px; border-radius: 10px;
     background: #ffffff; border: 1px solid rgba(0,0,0,0.1);
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 18px; font-weight: 700; letter-spacing: 2px; color: #111827;
     word-break: break-all; display: flex; align-items: center;
   }
   #copy-btn {
-    flex: 0 0 auto; padding: 12px 20px; border: none; border-radius: 10px;
+    flex: 0 0 auto; padding: 6px 20px; border: none; border-radius: 10px;
     background: #4d6bfe; color: #ffffff; font-size: 15px; font-weight: 600;
     cursor: pointer; font-family: inherit;
   }
