@@ -278,6 +278,12 @@ export type BearerStrategy = "required" | "optional";
 export function createBearerAuth(strategy: BearerStrategy = "required") {
   return createMiddleware<{ Bindings: Env; Variables: HonoAppVariables }>(async (c, next) => {
     const token = extractSessionToken(c);
+
+    // optional 且没带 token：本路由允许匿名访问，不必为每个匿名请求建表 + 查会话
+    if (strategy === "optional" && !token) {
+      return next();
+    }
+
     // 认证表必须已就绪，否则 getSession 会因表缺失而 500
     await ensureAuthSchema(c.env);
 
@@ -292,7 +298,7 @@ export function createBearerAuth(strategy: BearerStrategy = "required") {
       return next();
     }
 
-    if (strategy === "optional" && !token) {
+    if (strategy === "optional") {
       return next();
     }
     throw HttpApiError.unauthorized("invalid or missing session token");

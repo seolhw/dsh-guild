@@ -25,6 +25,7 @@ import type {
   GetMyCommunitiesResponse,
   ListMembersQuery,
   ReorderRolesRequest,
+  SendInviteEmailRequest,
   SetChannelOverwriteRequest,
   SetMemberRolesRequest,
   TransferOwnerRequest,
@@ -75,6 +76,7 @@ import {
 } from "../lib/channels";
 import { mapCommunity } from "../lib/communities";
 import { db as dbOf } from "../lib/db";
+import { dispatchInviteLinkEmail } from "../lib/email";
 import { HttpApiError } from "../lib/errors";
 import { newId, newInviteCode, newSlug } from "../lib/ids";
 import { createCommunityInvite, finalizePendingInvites } from "../lib/invites";
@@ -668,6 +670,41 @@ communitiesApi.post("/:id/invites", async (c) => {
     target: { id: found.user.id, email: found.email },
   });
   return c.json({ ...invite, invitee: found.user }, 201);
+});
+
+// --- POST /:id/invite-emails —— 站外邀请邮件（邀请链接 + 教程，无需对方已注册） ---
+// 只发信：不建邀请记录、不写站内信，对方自行注册后走落地页/邀请码加入。
+communitiesApi.post("/:id/invite-emails", async (c) => {
+  const db = dbOf(c);
+  const actorId = requireUserId(c);
+  const actor = requireCurrentUser(c);
+  const communityId = c.req.param("id");
+  const row = await communityById(db, communityId);
+  await requireCommunityPermission(
+    db,
+    communityId,
+    actorId,
+    Permission.INVITE_MEMBERS,
+    "需要邀请成员权限",
+  );
+
+  const body = await jsonBody<SendInviteEmailRequest>(c);
+  const raw = body.email?.trim() ?? "";
+  if (raw.length === 0) throw HttpApiError.badRequest("email required");
+  const to = raw.toLowerCase();
+  if (!to.includes("@")) throw HttpApiError.badRequest("邮箱格式不正确");
+
+  const origin = new URL(c.req.url).origin;
+  const inviteLink = (row.inviteCode ?? "").length > 0 ? `${origin}/invite/${row.inviteCode}` : origin;
+  dispatchInviteLinkEmail(c.env, c.req.raw as Request, {
+    to,
+    inviter: actor.handle,
+    communityName: row.name,
+    inviteLink,
+    inviteCode: row.inviteCode ?? "",
+  });
+  // RESEND 未配置时 sendMail 只打日志，这里如实回传是否真的发出去了
+  return c.json({ sent: (c.env.RESEND_API_KEY ?? "").trim().length > 0, email: to });
 });
 
 // --- DELETE /:id —— 删除社区（仅 owner） ---

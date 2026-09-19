@@ -27,6 +27,21 @@ export type CreateInviteResponse = CommunityInvite & {
   invitee: User;
 };
 
+/**
+ * POST /api/communities/:id/invite-emails
+ * —— 站外邀请：只发一封「邀请链接 + 教程」邮件给还没注册的人，不建邀请记录。
+ */
+export interface SendInviteEmailRequest {
+  /** 收件邮箱（无需是 DSH-Guild 用户） */
+  email: string;
+}
+
+export type SendInviteEmailResponse = {
+  /** 邮件已交给发信通道（RESEND 未配置时为 false，仅打日志） */
+  sent: boolean;
+  email: string;
+};
+
 /** POST /api/invites/:id/accept —— 接受邀请（仅被邀请人本人） */
 export type AcceptInviteResponse = Community & {
   channels: ChannelAccess[];

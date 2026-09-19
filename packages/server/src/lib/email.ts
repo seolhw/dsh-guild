@@ -138,7 +138,40 @@ export function dispatchVerificationOTPEmail(
   );
 }
 
-/** 社区邀请邮件：与被邀请人的站内信同时投递（随请求 waitUntil 后台发送） */
+/**
+ * 站外邀请邮件：对方还没注册 DSH-Guild，正文给「邀请链接 + 安装教程」，
+ * 引导其自行安装插件并加入社区（不建邀请记录、不发站内信）。
+ */
+export function dispatchInviteLinkEmail(
+  env: Env,
+  request: Request | undefined,
+  mail: {
+    to: string;
+    inviter: string;
+    communityName: string;
+    inviteLink: string;
+    inviteCode: string;
+  },
+): void {
+  const codeHint =
+    mail.inviteCode.length > 0
+      ? `3. 装好后在社区面板点「＋ 用邀请码加入」，输入邀请码 ${mail.inviteCode}。`
+      : "";
+  runDetached(
+    request,
+    sendMail(env, {
+      to: mail.to,
+      subject: `${mail.inviter} 邀请你加入 DSH-Guild 社区「${mail.communityName}」`,
+      text:
+        `${mail.inviter} 邀请你加入 DSH-Guild 社区「${mail.communityName}」。\n\n` +
+        `加入方式：\n` +
+        `1. 打开邀请页查看社区介绍和安装教程：\n${mail.inviteLink}\n` +
+        `2. 按教程在 DSH 里安装 DSH-Guild 插件；\n` +
+        (codeHint ? `${codeHint}\n` : "") +
+        `\n如果你不认识对方，忽略本邮件即可。`,
+    }),
+  );
+}
 export function dispatchInvitationEmail(
   env: Env,
   request: Request | undefined,

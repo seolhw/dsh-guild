@@ -128,9 +128,12 @@ export const ALL_PERMISSIONS: PermissionFlags =
   Permission.KICK_MEMBERS |
   Permission.BAN_MEMBERS;
 
-/** @everyone 默认权限：能看、能发、能开讨论组，但不能管理 */
+/** @everyone 默认权限：能看、能发、能开讨论组、能邀请，但不能管理 */
 export const DEFAULT_EVERYONE_PERMISSIONS: PermissionFlags =
-  Permission.VIEW_CHANNEL | Permission.SEND_MESSAGES | Permission.CREATE_THREAD;
+  Permission.VIEW_CHANNEL |
+  Permission.SEND_MESSAGES |
+  Permission.CREATE_THREAD |
+  Permission.INVITE_MEMBERS;
 
 /**
  * 建社区时预置的「管理员」角色名。它就是个**普通角色**：权限按创建时的

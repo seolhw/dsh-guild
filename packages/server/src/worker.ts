@@ -25,6 +25,7 @@ import { assertUsernameChangeAllowed } from "./lib/users";
 import { adminRoutes } from "./routes/admin";
 import { channelsRoutes, communitiesRoutes } from "./routes/communities";
 import { invitesRoutes } from "./routes/invites";
+import { inviteLandingRoutes } from "./routes/inviteLanding";
 import { channelMessagesRoutes, messagesRoutes } from "./routes/messages";
 import { notificationsRoutes } from "./routes/notifications";
 import { r2ObjectReadRoutes, r2UploadRoutes } from "./routes/r2";
@@ -48,7 +49,8 @@ app.get("/", (c) =>
     endpoints: {
       healthz: "/healthz",
       auth: "/api/auth/*",
-      api: "/api/communities|channels|messages|shares|r2",
+      api: "/api/communities|channels|messages|shares|invites|r2",
+      invite: "/invite/<inviteCode>",
       ws: "/ws?token=<sessionToken>&channelId=<id>",
     },
   }),
@@ -95,11 +97,14 @@ app.route("/api/channels", channelThreadsRoutes); // /api/channels/:channelId/th
 app.route("/api/threads", threadRoutes); // /api/threads/:id 讨论组生命周期/已读
 app.route("/api/messages", messagesRoutes);
 app.route("/api/shares", sharesRoutes);
-app.route("/api/invites", invitesRoutes); // /api/invites/:id/accept|decline
+app.route("/api/invites", invitesRoutes); // /api/invites/:id/accept|decline + /api/invites/preview/:code
 app.route("/api/notifications", notificationsRoutes); // /api/notifications（站内信）
 app.route("/api/r2", r2ObjectReadRoutes); // GET /api/r2/objects/:key（公开读取）
 app.route("/api/r2", r2UploadRoutes); // PUT /api/r2/objects（Bearer 鉴权）
 app.route("/api/admin", adminRoutes); // POST /api/admin/seed-official（Bearer + X-Admin-Token）
+
+// ----------------- 邀请链接落地页（/invite/:code，公开 HTML） -----------------
+app.route("/invite", inviteLandingRoutes);
 
 // ----------------- WebSocket Upgrade (/ws) -----------------
 // 浏览器 WS 无法自定义 Header，用 ?token=<session token>&channelId=<id>：

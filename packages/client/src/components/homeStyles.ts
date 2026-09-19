@@ -25,8 +25,14 @@ export const rail: CSSProperties = {
 
 export const railScroll: CSSProperties = {
   overflowY: "auto",
+  // 横向不滚动：超长内容一律走各自行的省略号，避免出现横向滚动条
+  overflowX: "hidden",
   flex: 1,
   width: "100%",
+  minWidth: 0,
+  // 宿主没有全局 box-sizing: border-box，content-box 下 width:100% 是「内容宽」，
+  // 再叠加左右 padding 就比父列宽出 padding 那么多，右侧被撑出列外。
+  boxSizing: "border-box",
   padding: "6px 0",
 };
 
@@ -105,6 +111,10 @@ export const railDivider: CSSProperties = {
 export const midCol: CSSProperties = {
   width: 300,
   flex: "0 0 auto",
+  // 固定宽度 + minWidth:0 + overflow:hidden：列内长内容（长频道名、私密角标、
+  // 未读气泡）只能在本列内省略，不允许把列撑宽去挤右侧聊天区。
+  minWidth: 0,
+  overflow: "hidden",
   background: palette.page,
   borderRight: `1px solid ${palette.border}`,
   display: "flex",
@@ -326,8 +336,12 @@ export const sectionTitle: CSSProperties = {
 
 /** 私密讨论组角标（图标库无锁图标，用 emoji + 文字标注） */
 export const privacyBadge: CSSProperties = {
-  flex: "0 0 auto",
-  fontSize: 14,
+  // 角标本身不缩，但允许被压缩到内容宽度以下并省略，避免顶宽整行
+  flex: "0 1 auto",
+  minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  fontSize: 13,
   fontWeight: 600,
   color: palette.muted,
   border: `1px solid ${palette.border}`,

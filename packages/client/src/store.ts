@@ -1141,6 +1141,26 @@ export async function inviteMember(handleOrEmail: string): Promise<boolean> {
   }
 }
 
+/**
+ * 站外邀请：给还没注册的人发一封「邀请链接 + 教程」邮件（不建邀请记录、不发站内信）。
+ * 成功返回 true；失败已 notify，调用方只需保留弹窗。
+ */
+export async function sendInviteEmail(email: string): Promise<boolean> {
+  const server = serverOf();
+  const communityId = state.view.communityId;
+  if (!server || !communityId) return false;
+  const to = email.trim();
+  if (!to) return false;
+  try {
+    const res = await server.sendInviteEmail(communityId, { email: to });
+    notify(res.sent ? `邀请邮件已发送至 ${res.email}` : "发信通道未配置，邮件未发出");
+    return res.sent;
+  } catch (error) {
+    notify(errorText(error));
+    return false;
+  }
+}
+
 /** 拉成员列表 */
 export async function listMembers(): Promise<ListMembersResponse["items"]> {
   const server = serverOf();
@@ -2678,6 +2698,21 @@ export async function revealMessage(
   } catch {
     return false;
   }
+}
+
+// ---------------- 邀请链接（方案 A：一键邀请） ----------------
+
+/**
+ * 生成某社区的邀请链接（分享用）。
+ * 形状 = `${serverUrl}/invite/${inviteCode}`，指向 Worker 渲染的落地页；
+ * 落地页展示社区信息、安装指引与邀请码，访客装好插件后自己用码加入。
+ * serverUrl 取当前配置，空则返回空串。
+ */
+export function inviteLinkFor(community: { inviteCode: string | null }): string {
+  const base = state.settings?.serverUrl ?? "";
+  const code = community.inviteCode ?? "";
+  if (base.length === 0 || code.length === 0) return "";
+  return `${base.replace(/\/+$/, "")}/invite/${code}`;
 }
 
 // ---------------- 成员列表（@ 补全数据源） ----------------

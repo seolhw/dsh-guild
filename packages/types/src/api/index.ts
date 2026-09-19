@@ -82,6 +82,9 @@ export * from "./threads";
  *   POST  /api/notifications/:id/read    —                         → MarkNotificationReadResponse
  *   POST  /api/notifications/read-all    —                         → MarkAllNotificationsReadResponse
  *
+ *  邀请链接（分享链接 = {origin}/invite/{inviteCode}，公开无鉴权）
+ *   GET   /invite/:code                  —                         → HTML 落地页
+ *
  *  消息
  *   GET    /api/channels/:id/messages          query:ListMessagesQuery  → ListMessagesResponse
  *   POST   /api/channels/:id/messages          CreateMessageRequest     → CreateMessageResponse

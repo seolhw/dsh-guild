@@ -142,6 +142,7 @@ function ThreadListRow({ thread, channelId }: { thread: ThreadSummary; channelId
           alignItems: "center",
           gap: 5,
           width: "100%",
+          minWidth: 0,
           border: "none",
           background: opened ? palette.hover : "transparent",
           borderRadius: 6,
@@ -228,6 +229,7 @@ export function ChannelThreadsOf({ channelId }: { channelId: string }): ReactEle
             alignItems: "center",
             gap: 4,
             width: "100%",
+            minWidth: 0,
             border: "none",
             background: "transparent",
             padding: "3px 8px",
@@ -240,6 +242,7 @@ export function ChannelThreadsOf({ channelId }: { channelId: string }): ReactEle
           <span
             style={{
               display: "inline-flex",
+              flex: "0 0 auto",
               color: palette.muted,
               transition: "transform 120ms ease",
               transform: archivedOpen ? "rotate(90deg)" : undefined,
@@ -247,7 +250,17 @@ export function ChannelThreadsOf({ channelId }: { channelId: string }): ReactEle
           >
             <IconChevronRightOutline14 />
           </span>
-          已归档讨论（{archived.length}）
+          <span
+            style={{
+              flex: 1,
+              minWidth: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            已归档讨论（{archived.length}）
+          </span>
         </button>
       ) : null}
       {archivedOpen && archived.length > 0 ? (

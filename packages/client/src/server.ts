@@ -22,6 +22,8 @@ import type {
   CreateCommunityResponse,
   CreateInviteRequest,
   CreateInviteResponse,
+  SendInviteEmailRequest,
+  SendInviteEmailResponse,
   CreateMessageRequest,
   CreateMessageResponse,
   CreateRoleRequest,
@@ -444,6 +446,19 @@ export class ServerClient {
     return this.call<CreateInviteResponse>(
       "POST",
       `/api/communities/${communityId}/invites`,
+      body,
+      true,
+    );
+  }
+
+  /** POST /api/communities/:id/invite-emails —— 站外邀请邮件（邀请链接 + 教程，无需对方已注册） */
+  sendInviteEmail(
+    communityId: string,
+    body: SendInviteEmailRequest,
+  ): Promise<SendInviteEmailResponse> {
+    return this.call<SendInviteEmailResponse>(
+      "POST",
+      `/api/communities/${communityId}/invite-emails`,
       body,
       true,
     );

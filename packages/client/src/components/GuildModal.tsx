@@ -27,7 +27,7 @@ body > div[role="presentation"]:has(> .${DIALOG_MARKER}) {
   bottom: var(--dsht-modal-bottom, 0px);
 }
 
-/* 宿主 dialog 默认宽 min(380px, 100%)，对表单 / 列表类内容偏窄，统一放宽 */
+/* 宿主 dialog 默认宽 min(380px, 100%)，对表单 / 列表类内容偏窄，统一放宽。 */
 body > div[role="presentation"] > .${DIALOG_MARKER} {
   width: min(560px, 100%);
 }

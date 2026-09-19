@@ -51,6 +51,7 @@ import {
   deleteCommunity,
   deleteRole,
   inviteMember,
+  inviteLinkFor,
   isMember,
   isModerator,
   isOwner,
@@ -63,6 +64,7 @@ import {
   myPermissions,
   notify,
   reorderRoles,
+  sendInviteEmail,
   setChannelOverwrite,
   setMemberRoles,
   updateChannelById,
@@ -112,7 +114,9 @@ const ROLE_COLOR_CHOICES: { value: number | null; label: string }[] = [
 
 /** 把权限位渲染成简短文本 */
 const permissionSummary = (bits: PermissionFlags): string => {
-  const names = PERMISSION_FIELDS.filter((f) => (bits & f.bit) !== 0).map((f) => f.label);
+  const names = PERMISSION_FIELDS.filter((f) => (bits & f.bit) !== 0).map(
+    (f) => f.label,
+  );
   return names.length > 0 ? names.join(" · ") : "无权限";
 };
 
@@ -134,11 +138,25 @@ const tipWrap: CSSProperties = {
   maxWidth: 260,
 };
 
-const tipTitle: CSSProperties = { fontSize: 16, fontWeight: 600, color: palette.text };
-const tipHint: CSSProperties = { fontSize: 14, lineHeight: 1.5, color: palette.muted };
+const tipTitle: CSSProperties = {
+  fontSize: 16,
+  fontWeight: 600,
+  color: palette.text,
+};
+const tipHint: CSSProperties = {
+  fontSize: 14,
+  lineHeight: 1.5,
+  color: palette.muted,
+};
 
 /** 成员操作按钮的 hover 说明卡：标题 + 行为说明 */
-function ActionTip({ title, hint }: { title: string; hint: string }): ReactElement {
+function ActionTip({
+  title,
+  hint,
+}: {
+  title: string;
+  hint: string;
+}): ReactElement {
   return (
     <div data-dsht-hover-tip style={tipWrap}>
       <span style={tipTitle}>{title}</span>
@@ -147,7 +165,12 @@ function ActionTip({ title, hint }: { title: string; hint: string }): ReactEleme
   );
 }
 
-type CommunityDialog = null | "roles" | "create-channel" | "invite-user" | "invite" | "settings";
+type CommunityDialog =
+  | null
+  | "roles"
+  | "create-channel"
+  | "invite"
+  | "settings";
 
 /** 频道列表顶部的社区管理菜单（角色 / 新建频道 / 邀请 / 设置 / 退出；成员操作在聊天区右侧成员面板） */
 export function CommunityTools(): ReactElement | null {
@@ -159,22 +182,42 @@ export function CommunityTools(): ReactElement | null {
   const communityId = guild.view.communityId;
   const canRoles = canManageRoles();
   const canChannel = isModerator();
-  const canInvite = canInviteMembers();
-  const canCommunity = canManageCommunity();
   const member = isMember();
+  const canCommunity = canManageCommunity();
   if (!communityId) return null;
 
   const menuItems: MenuEntry[] = [];
-  if (canRoles) menuItems.push({ id: "roles", label: "角色管理", icon: <IconUserOutline16 /> });
+  if (canRoles)
+    menuItems.push({
+      id: "roles",
+      label: "角色管理",
+      icon: <IconUserOutline16 />,
+    });
   if (canChannel)
-    menuItems.push({ id: "create-channel", label: "新建频道", icon: <IconPlusOutline16 /> });
-  if (canInvite)
-    menuItems.push({ id: "invite-user", label: "邀请用户", icon: <IconPlusOutline16 /> });
-  if (member) menuItems.push({ id: "invite", label: "邀请码", icon: <IconCopyOutline16 /> });
+    menuItems.push({
+      id: "create-channel",
+      label: "新建频道",
+      icon: <IconPlusOutline16 />,
+    });
+  if (member)
+    menuItems.push({
+      id: "invite",
+      label: "邀请加入",
+      icon: <IconPlusOutline16 />,
+    });
   if (canCommunity)
-    menuItems.push({ id: "settings", label: "社区设置", icon: <IconEditOutline16 /> });
+    menuItems.push({
+      id: "settings",
+      label: "社区设置",
+      icon: <IconEditOutline16 />,
+    });
   if (menuItems.length > 0) menuItems.push({ type: "separator", id: "sep" });
-  menuItems.push({ id: "leave", label: "退出社区", danger: true, icon: <IconRightUpOutline16 /> });
+  menuItems.push({
+    id: "leave",
+    label: "退出社区",
+    danger: true,
+    icon: <IconRightUpOutline16 />,
+  });
 
   return (
     <>
@@ -186,7 +229,6 @@ export function CommunityTools(): ReactElement | null {
           if (
             id === "roles" ||
             id === "create-channel" ||
-            id === "invite-user" ||
             id === "invite" ||
             id === "settings"
           )
@@ -220,121 +262,253 @@ export function CommunityTools(): ReactElement | null {
         items={menuItems}
         portal
       />
-      {dialog === "roles" ? <RolesDialog open onClose={() => setDialog(null)} /> : null}
-      {dialog === "create-channel" ? <ChannelDialog open onClose={() => setDialog(null)} /> : null}
-      {dialog === "invite-user" ? <InviteUserDialog open onClose={() => setDialog(null)} /> : null}
-      {dialog === "invite" ? <InviteDialog open onClose={() => setDialog(null)} /> : null}
-      {dialog === "settings" ? <SettingsDialog open onClose={() => setDialog(null)} /> : null}
+      {dialog === "roles" ? (
+        <RolesDialog open onClose={() => setDialog(null)} />
+      ) : null}
+      {dialog === "create-channel" ? (
+        <ChannelDialog open onClose={() => setDialog(null)} />
+      ) : null}
+      {dialog === "invite" ? (
+        <InviteDialog open onClose={() => setDialog(null)} />
+      ) : null}
+      {dialog === "settings" ? (
+        <SettingsDialog open onClose={() => setDialog(null)} />
+      ) : null}
     </>
   );
 }
 
-/** 邀请码展示 / 复制（创建社区时生成、固定不变；码对所有成员可见） */
-function InviteDialog({ open, onClose }: { open: boolean; onClose: () => void }): ReactElement {
+/**
+ * 邀请加入。两栏：
+ *   站外 —— 对方还没注册：复制邀请链接（打开是社区介绍 + 安装教程）/ 发邮件把链接寄过去
+ *   站内 —— 对方已是 DSH 用户：填邮箱直接发站内信邀请
+ */
+function InviteDialog({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}): ReactElement {
   const guild = useGuildState();
   const community = guild.view.community;
   const code = community?.inviteCode ?? "";
+  const link = community ? inviteLinkFor(community) : "";
+  const canDirect = canInviteMembers();
+  const [tab, setTab] = useState<"outside" | "inside">("outside");
+  const [mailTo, setMailTo] = useState("");
+  const [mailBusy, setMailBusy] = useState(false);
+  const [memberTo, setMemberTo] = useState("");
+  const [memberBusy, setMemberBusy] = useState(false);
 
-  async function copy(): Promise<void> {
+  // 每次打开回到默认栏并清空输入
+  useEffect(() => {
+    if (!open) return;
+    setTab("outside");
+    setMailTo("");
+    setMemberTo("");
+  }, [open]);
+
+  async function copyLink(): Promise<void> {
+    if (link.length === 0) return;
+    await writeClipboard(link);
+    notify("邀请链接已复制");
+  }
+
+  async function copyCode(): Promise<void> {
+    if (code.length === 0) return;
     await writeClipboard(code);
     notify("邀请码已复制");
   }
 
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="邀请码"
-      closeLabel="关闭"
-      description="把邀请码发给对方：对方在「＋ 加入」里输入即可进社区。"
-    >
-      <div style={fieldBlock}>
-        <label htmlFor="guild-invite-code" style={fieldLabel}>
-          邀请码
-        </label>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Input
-            id="guild-invite-code"
-            readOnly
-            value={code}
-            aria-label="邀请码"
-            style={{ flex: 1 }}
-          />
-          <Button variant="outline" icon={<IconCopyOutline16 />} onClick={() => void copy()}>
-            复制
-          </Button>
-        </div>
-        <span style={dialogHint}>邀请码在创建社区时生成、固定不变，不会过期；</span>
-      </div>
-    </Modal>
-  );
-}
+  async function sendMailTo(): Promise<void> {
+    if (mailBusy || mailTo.trim().length === 0) return;
+    setMailBusy(true);
+    const ok = await sendInviteEmail(mailTo);
+    setMailBusy(false);
+    if (ok) setMailTo("");
+  }
 
-/** 邀请已注册用户入社区（owner/admin）：输入 @用户名 或邮箱，对方会收到站内信 + 邮件 */
-function InviteUserDialog({ open, onClose }: { open: boolean; onClose: () => void }): ReactElement {
-  const [value, setValue] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  // 每次打开清空输入
-  useEffect(() => {
-    if (open) setValue("");
-  }, [open]);
-
-  async function submit(): Promise<void> {
-    if (busy || value.trim().length === 0) return;
-    setBusy(true);
-    const ok = await inviteMember(value);
-    setBusy(false);
-    if (ok) onClose();
+  async function sendMessageTo(): Promise<void> {
+    if (memberBusy || memberTo.trim().length === 0) return;
+    setMemberBusy(true);
+    const ok = await inviteMember(memberTo);
+    setMemberBusy(false);
+    if (ok) {
+      setMemberTo("");
+      onClose();
+    }
   }
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="邀请用户加入"
-      closeLabel="关闭"
-      description="输入对方的 @用户名 或注册邮箱，对方会收到站内信和邮件邀请。"
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose}>
-            取消
-          </Button>
-          <Button
-            variant="primary"
-            disabled={busy || value.trim().length === 0}
-            onClick={() => void submit()}
+    <Modal open={open} onClose={onClose} title="邀请加入" closeLabel="关闭">
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={pillGroup}>
+          <button
+            type="button"
+            style={pillStyle(tab === "outside")}
+            onClick={() => setTab("outside")}
           >
-            {busy ? "邀请中…" : "发送邀请"}
-          </Button>
-        </>
-      }
-    >
-      <div style={fieldBlock}>
-        <label htmlFor="guild-invite-user" style={fieldLabel}>
-          @用户名 或邮箱
-        </label>
-        <Input
-          id="guild-invite-user"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder="如 @alice 或 alice@example.com"
-        />
-        <span style={dialogHint}>仅可邀请已注册的用户；对方接受后即可加入社区。</span>
+            邀请站外
+          </button>
+          <button
+            type="button"
+            style={pillStyle(tab === "inside")}
+            onClick={() => setTab("inside")}
+          >
+            邀请站内
+          </button>
+        </div>
+
+        {tab === "outside" ? (
+          <>
+            <span style={dialogHint}>
+              对方还没有 DSH-Guild 账号，把链接发给他就行。
+            </span>
+
+            <div style={fieldBlock}>
+              <label htmlFor="guild-invite-link" style={fieldLabel}>
+                邀请链接
+              </label>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Input
+                    id="guild-invite-link"
+                    readOnly
+                    value={link}
+                    aria-label="邀请链接"
+                    style={{ width: "350px" }}
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  icon={<IconCopyOutline16 />}
+                  disabled={link.length === 0}
+                  onClick={() => void copyLink()}
+                >
+                  复制
+                </Button>
+              </div>
+              <span style={dialogHint}>
+                打开是社区介绍和安装教程，照做就能加入。
+              </span>
+            </div>
+
+            <div style={fieldBlock}>
+              <label htmlFor="guild-invite-mail" style={fieldLabel}>
+                发送邮件
+              </label>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Input
+                    id="guild-invite-mail"
+                    type="email"
+                    value={mailTo}
+                    onChange={(e) => setMailTo(e.target.value)}
+                    placeholder="对方邮箱"
+                    style={{ width: "350px" }}
+                  />
+                </div>
+                <Button
+                  variant="primary"
+                  disabled={mailBusy || mailTo.trim().length === 0}
+                  onClick={() => void sendMailTo()}
+                >
+                  {mailBusy ? "发送中…" : "发送"}
+                </Button>
+              </div>
+              <span style={dialogHint}>邮件里就是这条邀请链接。</span>
+            </div>
+
+            <div style={fieldBlock}>
+              <label htmlFor="guild-invite-code" style={fieldLabel}>
+                邀请码
+              </label>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Input
+                    id="guild-invite-code"
+                    readOnly
+                    value={code}
+                    aria-label="邀请码"
+                    style={{ width: "350px" }}
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  icon={<IconCopyOutline16 />}
+                  disabled={code.length === 0}
+                  onClick={() => void copyCode()}
+                >
+                  复制
+                </Button>
+              </div>
+              <span style={dialogHint}>
+                在「＋ 加入」里填邀请码即可加入。
+              </span>
+            </div>
+          </>
+        ) : (
+          <>
+            <span style={dialogHint}>
+              对方已经注册过 DSH 社区，填邮箱直接把邀请发到他的站内信。
+            </span>
+
+            {canDirect ? (
+              <div style={fieldBlock}>
+                <label htmlFor="guild-invite-user" style={fieldLabel}>
+                  对方邮箱
+                </label>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Input
+                      id="guild-invite-user"
+                      type="email"
+                      value={memberTo}
+                      onChange={(e) => setMemberTo(e.target.value)}
+                      placeholder="输入邮箱"
+                      style={{ width: "350px" }}
+                    />
+                  </div>
+                  <Button
+                    variant="primary"
+                    disabled={memberBusy || memberTo.trim().length === 0}
+                    onClick={() => void sendMessageTo()}
+                  >
+                    {memberBusy ? "发送中…" : "发送"}
+                  </Button>
+                </div>
+                <span style={dialogHint}>对方收到站内信后点「加入」即可。</span>
+              </div>
+            ) : (
+              <span style={dialogHint}>加入社区后即可邀请站内成员。</span>
+            )}
+          </>
+        )}
       </div>
     </Modal>
   );
 }
 
 /** 社区设置（owner/admin） */
-function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void }): ReactElement {
+function SettingsDialog({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}): ReactElement {
   const guild = useGuildState();
   const community = guild.view.community;
   const owner = isOwner();
   const [name, setName] = useState(community?.name ?? "");
   const [description, setDescription] = useState(community?.description ?? "");
-  const [privacy, setPrivacy] = useState<"public" | "private">(community?.privacy ?? "public");
-  const [iconUrl, setIconUrl] = useState<string | null>(community?.iconUrl ?? null);
+  const [privacy, setPrivacy] = useState<"public" | "private">(
+    community?.privacy ?? "public",
+  );
+  const [iconUrl, setIconUrl] = useState<string | null>(
+    community?.iconUrl ?? null,
+  );
   const [busy, setBusy] = useState(false);
   const [iconBusy, setIconBusy] = useState(false);
 
@@ -345,7 +519,13 @@ function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void 
     setDescription(community?.description ?? "");
     setPrivacy(community?.privacy ?? "public");
     setIconUrl(community?.iconUrl ?? null);
-  }, [open, community?.name, community?.description, community?.privacy, community?.iconUrl]);
+  }, [
+    open,
+    community?.name,
+    community?.description,
+    community?.privacy,
+    community?.iconUrl,
+  ]);
 
   async function pickIcon(file: File): Promise<void> {
     setIconBusy(true);
@@ -470,7 +650,8 @@ function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void 
             }}
           >
             <span style={dialogHint}>
-              危险操作：删除社区「{community?.name}」后，其全部频道与消息将被永久清除。
+              危险操作：删除社区「{community?.name}
+              」后，其全部频道与消息将被永久清除。
             </span>
             <Button
               variant="ghost"
@@ -513,7 +694,9 @@ export function MemberRolesDialog({
 
   function toggle(roleId: ID): void {
     setSelected((prev) =>
-      prev.includes(roleId) ? prev.filter((id) => id !== roleId) : [...prev, roleId],
+      prev.includes(roleId)
+        ? prev.filter((id) => id !== roleId)
+        : [...prev, roleId],
     );
   }
 
@@ -577,7 +760,9 @@ export function MemberRolesDialog({
                     {permissionSummary(r.permissions)}
                   </div>
                 </div>
-                <span style={{ ...smallText, fontSize: 14 }}>{on ? "已分配" : "未分配"}</span>
+                <span style={{ ...smallText, fontSize: 14 }}>
+                  {on ? "已分配" : "未分配"}
+                </span>
               </button>
             );
           })}
@@ -604,7 +789,9 @@ function ChannelDialog({
   const isEdit = channel !== undefined;
   const [name, setName] = useState(channel?.name ?? "");
   const [topic, setTopic] = useState(channel?.topic ?? "");
-  const [kind, setKind] = useState<"text" | "announcement" | "forum">(channel?.kind ?? "text");
+  const [kind, setKind] = useState<"text" | "announcement" | "forum">(
+    channel?.kind ?? "text",
+  );
   const [busy, setBusy] = useState(false);
 
   async function save(): Promise<void> {
@@ -721,8 +908,14 @@ function ChannelDialog({
 }
 
 /** 频道上移 / 下移图标（复用左箭头旋转，避免额外图标依赖） */
-const moveUpIcon: CSSProperties = { display: "inline-flex", transform: "rotate(90deg)" };
-const moveDownIcon: CSSProperties = { display: "inline-flex", transform: "rotate(-90deg)" };
+const moveUpIcon: CSSProperties = {
+  display: "inline-flex",
+  transform: "rotate(90deg)",
+};
+const moveDownIcon: CSSProperties = {
+  display: "inline-flex",
+  transform: "rotate(-90deg)",
+};
 
 /**
  * 每行的频道呼出菜单：创建讨论组（该频道 CREATE_THREAD 位）+
@@ -745,14 +938,17 @@ export function ChannelRowMenu({
   // 权限覆盖读写走社区级 MANAGE_CHANNEL（避免频道级 deny 自锁）；
   // 频道改名/删除/排序走该频道解析后的 MANAGE_CHANNEL 位
   const canOverwrite = isModerator();
-  const canManageChannel = (channelPermissions(channel.id) & Permission.MANAGE_CHANNEL) !== 0;
+  const canManageChannel =
+    (channelPermissions(channel.id) & Permission.MANAGE_CHANNEL) !== 0;
 
   const channels = guild.view.community?.channels ?? [];
   const index = channels.findIndex((c) => c.id === channel.id);
   const canMoveUp = canManageChannel && index > 0;
-  const canMoveDown = canManageChannel && index >= 0 && index < channels.length - 1;
+  const canMoveDown =
+    canManageChannel && index >= 0 && index < channels.length - 1;
   // 能否建讨论组取决于该频道的 CREATE_THREAD 位（公告频道默认被 everyone 覆盖拒绝）
-  const canCreateThread = (channelPermissions(channel.id) & Permission.CREATE_THREAD) !== 0;
+  const canCreateThread =
+    (channelPermissions(channel.id) & Permission.CREATE_THREAD) !== 0;
   const isForum = channel.kind === "forum";
 
   async function remove(): Promise<void> {
@@ -813,11 +1009,18 @@ export function ChannelRowMenu({
           },
         ]
       : []),
-    ...(canOverwrite ? [{ id: "overwrites", label: "权限覆盖", icon: <IconUserOutline16 /> }] : []),
+    ...(canOverwrite
+      ? [{ id: "overwrites", label: "权限覆盖", icon: <IconUserOutline16 /> }]
+      : []),
     ...(canManageChannel
       ? [
           { id: "edit", label: "编辑频道", icon: <IconEditOutline16 /> },
-          { id: "delete", label: "删除频道", danger: true, icon: <IconTrashOutline16 /> },
+          {
+            id: "delete",
+            label: "删除频道",
+            danger: true,
+            icon: <IconTrashOutline16 />,
+          },
         ]
       : []),
   ];
@@ -847,15 +1050,27 @@ export function ChannelRowMenu({
               e.stopPropagation();
               setMenuOpen((v) => !v);
             }}
-            aria-label={busy ? `正在处理 #${channel.name}` : `管理 #${channel.name}`}
+            aria-label={
+              busy ? `正在处理 #${channel.name}` : `管理 #${channel.name}`
+            }
           />
         }
         items={items}
         portal
       />
-      {editing ? <ChannelDialog open channel={channel} onClose={() => setEditing(false)} /> : null}
+      {editing ? (
+        <ChannelDialog
+          open
+          channel={channel}
+          onClose={() => setEditing(false)}
+        />
+      ) : null}
       {overwriting ? (
-        <ChannelOverwriteDialog open channel={channel} onClose={() => setOverwriting(false)} />
+        <ChannelOverwriteDialog
+          open
+          channel={channel}
+          onClose={() => setOverwriting(false)}
+        />
       ) : null}
     </>
   );
@@ -864,14 +1079,22 @@ export function ChannelRowMenu({
 // ---------------- 角色管理 ----------------
 
 /** 角色管理（MANAGE_ROLES；只能操作层级低于自己的角色）：列表 + 新建/编辑/删除 + 层级调整 */
-function RolesDialog({ open, onClose }: { open: boolean; onClose: () => void }): ReactElement {
+function RolesDialog({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}): ReactElement {
   const guild = useGuildState();
   const roles = guild.view.community?.roles ?? [];
   const [editing, setEditing] = useState<CommunityRole | "new" | null>(null);
   // 正在删除 / 调整层级的角色 id（禁用该行操作并转圈）
   const [busyRoleId, setBusyRoleId] = useState<ID | null>(null);
 
-  const custom = roles.filter((r) => !r.isEveryone).sort((a, b) => b.position - a.position);
+  const custom = roles
+    .filter((r) => !r.isEveryone)
+    .sort((a, b) => b.position - a.position);
   const everyone = roles.find((r) => r.isEveryone) ?? null;
 
   async function remove(role: CommunityRole): Promise<void> {
@@ -917,7 +1140,11 @@ function RolesDialog({ open, onClose }: { open: boolean; onClose: () => void }):
             variant="primary"
             icon={<IconPlusOutline16 />}
             disabled={!isOwner() && myHighestRolePosition() === 0}
-            title={!isOwner() && myHighestRolePosition() === 0 ? "需要先拥有一个角色" : undefined}
+            title={
+              !isOwner() && myHighestRolePosition() === 0
+                ? "需要先拥有一个角色"
+                : undefined
+            }
             onClick={() => setEditing("new")}
           >
             新建角色
@@ -957,7 +1184,11 @@ function RolesDialog({ open, onClose }: { open: boolean; onClose: () => void }):
                 <Button
                   size="sm"
                   variant="ghost"
-                  disabled={busyRoleId !== null || i === 0 || !canManageRolePosition(role.position)}
+                  disabled={
+                    busyRoleId !== null ||
+                    i === 0 ||
+                    !canManageRolePosition(role.position)
+                  }
                   onClick={() => void move(role, "up")}
                   aria-label={`${role.name} 上移`}
                 >
@@ -994,7 +1225,9 @@ function RolesDialog({ open, onClose }: { open: boolean; onClose: () => void }):
             <Button
               size="sm"
               variant="ghost"
-              disabled={busyRoleId !== null || !canManageRolePosition(role.position)}
+              disabled={
+                busyRoleId !== null || !canManageRolePosition(role.position)
+              }
               onClick={() => setEditing(role)}
             >
               编辑
@@ -1013,8 +1246,16 @@ function RolesDialog({ open, onClose }: { open: boolean; onClose: () => void }):
                 <Button
                   size="sm"
                   variant="ghost"
-                  disabled={busyRoleId !== null || !canManageRolePosition(role.position)}
-                  icon={busyRoleId === role.id ? <Spinner size={14} /> : <IconTrashOutline16 />}
+                  disabled={
+                    busyRoleId !== null || !canManageRolePosition(role.position)
+                  }
+                  icon={
+                    busyRoleId === role.id ? (
+                      <Spinner size={14} />
+                    ) : (
+                      <IconTrashOutline16 />
+                    )
+                  }
                   onClick={() => void remove(role)}
                   aria-label={`删除角色 ${role.name}`}
                 />
@@ -1078,7 +1319,9 @@ function RoleEditorDialog({
   const everyone = role?.isEveryone ?? false;
   const [name, setName] = useState(role?.name ?? "");
   const [color, setColor] = useState<number | null>(role?.color ?? null);
-  const [permissions, setPermissions] = useState<PermissionFlags>(role?.permissions ?? 0);
+  const [permissions, setPermissions] = useState<PermissionFlags>(
+    role?.permissions ?? 0,
+  );
   const [busy, setBusy] = useState(false);
 
   function toggle(bit: PermissionFlags): void {
@@ -1090,7 +1333,11 @@ function RoleEditorDialog({
     setBusy(true);
     let ok: boolean;
     if (role !== null) {
-      const patch: { name?: string; color: number | null; permissions: PermissionFlags } = {
+      const patch: {
+        name?: string;
+        color: number | null;
+        permissions: PermissionFlags;
+      } = {
         color,
         permissions,
       };
@@ -1172,7 +1419,8 @@ function RoleEditorDialog({
             {PERMISSION_FIELDS.map((field) => {
               const on = (permissions & field.bit) !== 0;
               // 不能授予自己没有的位（已授予的位仍可关闭）
-              const grantable = isOwner() || (field.bit & myPermissions()) === field.bit;
+              const grantable =
+                isOwner() || (field.bit & myPermissions()) === field.bit;
               const blocked = !on && !grantable;
               return (
                 <button
@@ -1191,7 +1439,9 @@ function RoleEditorDialog({
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={listCardName}>{field.label}</div>
-                    <div style={{ ...smallText, fontSize: 14 }}>{field.hint}</div>
+                    <div style={{ ...smallText, fontSize: 14 }}>
+                      {field.hint}
+                    </div>
                   </div>
                   <span style={{ ...smallText, fontSize: 14 }}>
                     {blocked ? "无权授予" : on ? "允许" : "未授予"}
@@ -1247,7 +1497,9 @@ function ChannelOverwriteDialog({
   const [overwrites, setOverwrites] = useState<ChannelOverwrite[]>([]);
   const [members, setMembers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedKey, setSelectedKey] = useState(`everyone:${EVERYONE_TARGET_ID}`);
+  const [selectedKey, setSelectedKey] = useState(
+    `everyone:${EVERYONE_TARGET_ID}`,
+  );
   const [allow, setAllow] = useState<PermissionFlags>(0);
   const [deny, setDeny] = useState<PermissionFlags>(0);
   const [busy, setBusy] = useState(false);
@@ -1258,12 +1510,14 @@ function ChannelOverwriteDialog({
     if (!open) return;
     let cancelled = false;
     setLoading(true);
-    void Promise.all([listChannelOverwrites(channel.id), listMembers()]).then(([os, ms]) => {
-      if (cancelled) return;
-      setOverwrites(os);
-      setMembers(ms.map((m) => m.user));
-      setLoading(false);
-    });
+    void Promise.all([listChannelOverwrites(channel.id), listMembers()]).then(
+      ([os, ms]) => {
+        if (cancelled) return;
+        setOverwrites(os);
+        setMembers(ms.map((m) => m.user));
+        setLoading(false);
+      },
+    );
     return () => {
       cancelled = true;
     };
@@ -1275,7 +1529,11 @@ function ChannelOverwriteDialog({
       .filter((r) => !r.isEveryone)
       .sort((a, b) => b.position - a.position)
       .map((r) => ({ type: "role" as const, id: r.id, label: r.name })),
-    ...members.map((u) => ({ type: "member" as const, id: u.id, label: `@${u.handle}` })),
+    ...members.map((u) => ({
+      type: "member" as const,
+      id: u.id,
+      label: `@${u.handle}`,
+    })),
   ];
   const selected = targets.find((t) => `${t.type}:${t.id}` === selectedKey) ?? {
     type: "everyone" as OverwriteTargetType,
@@ -1304,7 +1562,12 @@ function ChannelOverwriteDialog({
   async function save(): Promise<void> {
     setBusy(true);
     setAction("save");
-    const ok = await setChannelOverwrite(channel.id, selected.type, selected.id, { allow, deny });
+    const ok = await setChannelOverwrite(
+      channel.id,
+      selected.type,
+      selected.id,
+      { allow, deny },
+    );
     setBusy(false);
     setAction(null);
     if (ok) {
@@ -1317,7 +1580,11 @@ function ChannelOverwriteDialog({
     if (!current) return;
     setBusy(true);
     setAction("clear");
-    const ok = await deleteChannelOverwrite(channel.id, selected.type, selected.id);
+    const ok = await deleteChannelOverwrite(
+      channel.id,
+      selected.type,
+      selected.id,
+    );
     setBusy(false);
     setAction(null);
     if (ok) {
@@ -1335,7 +1602,11 @@ function ChannelOverwriteDialog({
       description="在角色自带权限之上，对该频道逐个目标放行或拒绝；「继承」表示不写入该位。"
       footer={
         <>
-          <Button variant="ghost" disabled={busy || !current} onClick={() => void clear()}>
+          <Button
+            variant="ghost"
+            disabled={busy || !current}
+            onClick={() => void clear()}
+          >
             {action === "clear" ? "清除中…" : "清除覆盖"}
           </Button>
           <Button variant="primary" disabled={busy} onClick={() => void save()}>
@@ -1355,7 +1626,8 @@ function ChannelOverwriteDialog({
                 const key = `${target.type}:${target.id}`;
                 const active = key === selectedKey;
                 const hasOverwrite = overwrites.some(
-                  (o) => o.targetType === target.type && o.targetId === target.id,
+                  (o) =>
+                    o.targetType === target.type && o.targetId === target.id,
                 );
                 return (
                   <button
@@ -1377,7 +1649,9 @@ function ChannelOverwriteDialog({
                 );
               })}
             </div>
-            <span style={dialogHint}>带蓝色边框的目标已存在覆盖；成员列表仅含当前社区成员。</span>
+            <span style={dialogHint}>
+              带蓝色边框的目标已存在覆盖；成员列表仅含当前社区成员。
+            </span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {OVERWRITE_FIELDS.map((field) => {
@@ -1386,7 +1660,9 @@ function ChannelOverwriteDialog({
                 <div key={field.label} style={listCard}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={listCardName}>{field.label}</div>
-                    <div style={{ ...smallText, fontSize: 14 }}>{field.hint}</div>
+                    <div style={{ ...smallText, fontSize: 14 }}>
+                      {field.hint}
+                    </div>
                   </div>
                   <div
                     style={{
