@@ -1,0 +1,17 @@
+{
+  "name": "@dsh-guild/website",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DSH-Guild 文档站（VitePress）",
+  "scripts": {
+    "dev": "vitepress dev . --port 5180",
+    "build": "vitepress build .",
+    "preview": "vitepress preview .",
+    "deploy:pages": "vitepress build . && wrangler pages deploy .vitepress/dist --project-name=dsh-guild-docs --branch=main --commit-dirty=true"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.3",
+    "wrangler": "^4.0.0"
+  }
+}

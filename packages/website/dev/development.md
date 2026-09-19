@@ -1,10 +1,8 @@
 # 参与开发
 
-[← 返回 README](../README.md) ｜ 相关文档：[自部署 Server](./deploy.md)
+[← 返回文档首页](/) ｜ 相关文档：[自部署 Server](/dev/deploy)
 
-本仓库是 pnpm TypeScript 工作区（monorepo）：插件本身 + Cloudflare Server 后端的源码都在这里。改了源码要在本地看到效果，按下面的步骤跑；只想**使用**插件的用户看 README 的「安装插件」即可。
-
----
+本仓库是 pnpm TypeScript 工作区（monorepo）：插件本身 + Cloudflare Server 后端的源码都在这里。改了源码要在本地看到效果，按下面的步骤跑；只想**使用**插件的用户看[安装与首次使用](/guide/install)即可。
 
 ## 环境
 
@@ -76,8 +74,6 @@ pnpm dev      # overlay 模式：自动打包并启动 DSH Web（默认 http://1
 
 > 单机联调两台「用户」时，请使用两个独立的 DSH profile（不同端口、不同配置目录），连接同一个 Server。
 
----
-
 ## 仓库结构
 
 ```
@@ -86,8 +82,9 @@ dsh-guild/
 │   ├── host/      # DSH 插件 host：注册 guild 设置 + 本地接口
 │   ├── client/    # DSH 插件 client：React 聊天界面 + 连接层
 │   ├── types/     # ⭐ 全栈共享类型：实体 / REST / WebSocket / RPC 契约
-│   └── server/    # ⭐ Cloudflare Server：Hono Worker + D1 + R2 + Durable Object
-├── docs/          # 文档：参与开发（本文件）+ 自部署 Server
+│   ├── server/    # ⭐ Cloudflare Server：Hono Worker + D1 + R2 + Durable Object
+│   └── website/   # 📖 本文档站（VitePress）
+├── docs/          # 历史文档（已迁入 packages/website）
 ├── assets/        # README 用的截图等静态资源
 ├── lib/           # 打包产物（host + client）
 ├── tsdown.config.ts / cordis.yml / cordis.patch.yml
@@ -108,6 +105,9 @@ pnpm lint / pnpm check    # Biome 质量检查
 pnpm --filter @dsh-guild/server db:generate   # 改 schema 后生成迁移
 pnpm --filter @dsh-guild/server db:apply-local
 pnpm --filter @dsh-guild/server test:smoke    # WebSocket 冒烟测试（需本地 Server 已启动）
+pnpm docs:dev             # 本地预览文档站
+pnpm docs:build           # 构建文档站静态产物
+pnpm docs:deploy          # 构建并部署文档站到 Cloudflare Pages
 ```
 
 ## 约定
@@ -120,4 +120,4 @@ pnpm --filter @dsh-guild/server test:smoke    # WebSocket 冒烟测试（需本�
 
 ## 自部署
 
-想把自己的 Server 部署到 Cloudflare，见 [自部署 Server](./deploy.md)。
+想把自己的 Server 部署到 Cloudflare，见[自部署 Server](/dev/deploy)（文档站的 Pages 部署也在同一页）。
