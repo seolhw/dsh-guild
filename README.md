@@ -25,15 +25,15 @@
 
 ## 应用截图
 
-![应用截图-公告](https://r2.huiwang.fun/PixPin_2026-09-16_22-57-33.png)
+![应用截图-公告](https://raw.githubusercontent.com/seolhw/dsh-guild/main/assets/screenshots/1-announcement.png)
 
-![应用截图-全员](https://r2.huiwang.fun/PixPin_2026-09-16_22-57-52.png)
+![应用截图-全员](https://raw.githubusercontent.com/seolhw/dsh-guild/main/assets/screenshots/2-members.png)
 
-![应用截图-菜单](https://r2.huiwang.fun/PixPin_2026-09-16_22-58-43.png)
+![应用截图-菜单](https://raw.githubusercontent.com/seolhw/dsh-guild/main/assets/screenshots/3-channel-menu.png)
 
-![应用截图-角色](https://r2.huiwang.fun/PixPin_2026-09-16_22-59-43.png)
+![应用截图-角色](https://raw.githubusercontent.com/seolhw/dsh-guild/main/assets/screenshots/4-roles.png)
 
-![应用截图-权限](https://r2.huiwang.fun/PixPin_2026-09-17_00-03-24.png)
+![应用截图-权限](https://raw.githubusercontent.com/seolhw/dsh-guild/main/assets/screenshots/5-permissions.png)
 
 
 
