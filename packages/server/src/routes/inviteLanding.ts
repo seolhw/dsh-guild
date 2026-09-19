@@ -69,7 +69,7 @@ function renderLanding(input: { code: string; community: CommunityRow | null }):
 
       <div class="step">
         <div class="step-head"><span class="num">2</span><span class="step-title">安装 DSH-Guild 插件</span></div>
-        <pre><code>npx @deepseek-ai/dsh plugin --profile web add dsh-guild
+        <pre><code>npx @deepseek-ai/dsh plugin --profile web add dsh-guild@0.0.3
 npx @deepseek-ai/dsh web</code></pre>
       </div>
 

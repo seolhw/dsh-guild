@@ -12,7 +12,7 @@
 
 ```bash
 # 从 npm 装进 web profile（推荐）
-npx @deepseek-ai/dsh plugin --profile web add dsh-guild
+npx @deepseek-ai/dsh plugin --profile web add dsh-guild@0.0.3
 
 # 启动 DSH Web
 npx @deepseek-ai/dsh web
